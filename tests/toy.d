@@ -10,7 +10,7 @@ void main () {
     writeln( "Creating context." );
     auto watch = zmq_stopwatch_start();
     auto context = zmq_ctx_new();
-    writefln( "0MQ context %08X", context );
+    writefln( "0MQ context %X", context );
     writeln( " ... io threads: ", zmq_ctx_get( context, ZMQ_IO_THREADS ) );
     writeln( " ... max sockets: ", zmq_ctx_get( context, ZMQ_MAX_SOCKETS ) );
     
