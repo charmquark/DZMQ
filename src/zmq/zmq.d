@@ -1,9 +1,6 @@
 /*
-    0MQ header translated into the D Programming Language
-    by Christopher Nicholson-Sauls (2012).
-*/
-
-/*
+    Original notice from 0MQ project:
+    --------------------------------------------------------------------------------------------
     Copyright (c) 2007-2012 iMatix Corporation
     Copyright (c) 2009-2011 250bpm s.r.o.
     Copyright (c) 2011 VMware, Inc.
@@ -23,144 +20,104 @@
 
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    --------------------------------------------------------------------------------------------
 */
+
+/***************************************************************************************************
+ *  0MQ header translated into the D Programming Language.
+ *
+ *  While it is certainly possible to use this module directly, it is generally preferable (from a
+ *  user code point of view) to instead use the wrapper in module dzmq.zmq.
+ *
+ *  Much of this documentation is lifted directly from the 0MQ API documentation available at
+ *  $(LINK http://api.zeromq.org/3-2:__start), which is copyright (c) 2007-2012 iMatix Corporation, 
+ *  and licensed under the Creative Commons Attribution-Share Alike 3.0 License. ØMQ is copyright 
+ *  (c) Copyright (c) 2007-2012 iMatix Corporation and Contributors. ØMQ is free software licensed 
+ *  under the LGPL. ØMQ, ZeroMQ, and 0MQ are trademarks of iMatix Corporation.
+ *
+ *  Where appropriate, minor edits have been made to fit the style of D, or for brevity.
+ *
+ *  Authors:    Christopher Nicholson-Sauls <ibisbasenji@gmail.com>
+ *  Copyright:  Public Domain (within limits of license)
+ *  Date:       October 17, 2012
+ *  License:    GPLv3 (see file COPYING), LGPLv3 (see file COPYING.LESSER)
+ *  Version:    0.1a
+ *
+ */
 
 module zmq.zmq;
 
-pragma( lib, "zmq" );
-
-extern( C ):
-
-/+
-#if !defined WINCE
-#include <errno.h>
-#endif
-+/
-public import core.stdc.errno;
-
-/+
-#include <stddef.h>
-#include <stdio.h>
-#if defined _WIN32
-#include <winsock2.h>
-#endif
-+/
 version( Windows ) {
     import std.c.windows.winsock;
 }
 
-/+
-/*  Handle DSO symbol visibility                                             */
-#if defined _WIN32
-#   if defined DLL_EXPORT
-#       define ZMQ_EXPORT __declspec(dllexport)
-#   else
-#       define ZMQ_EXPORT __declspec(dllimport)
-#   endif
-#else
-#   if defined __SUNPRO_C  || defined __SUNPRO_CC
-#       define ZMQ_EXPORT __global
-#   elif (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER
-#       define ZMQ_EXPORT __attribute__ ((visibility("default")))
-#   else
-#       define ZMQ_EXPORT
-#   endif
-#endif
-+/
-//TODO: Try to support export cleanly.
+public import core.stdc.errno;
 
-/******************************************************************************/
-/*  0MQ versioning support.                                                   */
-/******************************************************************************/
+/* Direct compiler to generate linkage with the 0MQ library. */
+pragma( lib, "zmq" );
 
-/*  Version macros for compile-time API version detection                     */
-/+
-#define ZMQ_VERSION_MAJOR 3
-#define ZMQ_VERSION_MINOR 2
-#define ZMQ_VERSION_PATCH 2
+/* C linkage for all function prototypes. */
+extern( C ):
 
-#define ZMQ_MAKE_VERSION(major, minor, patch) \
-    ((major) * 10000 + (minor) * 100 + (patch))
-#define ZMQ_VERSION \
-    ZMQ_MAKE_VERSION(ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH)
-+/
-enum    ZMQ_VERSION_MAJOR   = 3 ,
-        ZMQ_VERSION_MINOR   = 2 ,
-        ZMQ_VERSION_PATCH   = 2 ;
-    
-enum ZMQ_VERSION = ZMQ_VERSION_MAJOR * 10_000 + ZMQ_VERSION_MINOR * 100 + ZMQ_VERSION_PATCH;
 
-/*  Run-time API version detection                                            */
-//ZMQ_EXPORT void zmq_version (int *major, int *minor, int *patch);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  0MQ versioning support.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************************************************************************************
+ *  Version constants for compile-time API version detection.
+ */
+
+enum    ZMQ_VERSION_MAJOR   = 3,
+        ZMQ_VERSION_MINOR   = 2,
+        ZMQ_VERSION_PATCH   = 2,
+        ZMQ_VERSION         = ZMQ_VERSION_MAJOR * 10_000 
+                            + ZMQ_VERSION_MINOR * 100 
+                            + ZMQ_VERSION_PATCH;
+
+
+/***************************************************************************************************
+ *  Run-time API version detection.
+ *
+ *  The zmq_version() function shall fill in the integer variables pointed to by the major, minor 
+ *  and patch arguments with the major, minor and patch level components of the ØMQ library version.
+ *
+ *  This functionality is intended for applications or language bindings dynamically linking to the 
+ *  ØMQ library that wish to determine the actual version of the ØMQ library they are using.
+ *
+ *  Params:
+ *      major   = pointer to variable receiving major version number
+ *      minor   = pointer to variable receiving minor version number
+ *      patch   = pointer to variable receiving patch version number
+ *
+ *  -----
+ *  int major, minor, patch;
+ *  zmq_version( &major, &minor, &patch );
+ *  writefln( "Current 0MQ version is %s.%s.%s", major, minor, patch );
+ *  -----
+ */
+
 void zmq_version ( int* major, int* minor, int* patch );
 
-/******************************************************************************/
-/*  0MQ errors.                                                               */
-/******************************************************************************/
 
-/*  A number random enough not to collide with different errno ranges on      */
-/*  different OSes. The assumption is that error_t is at least 32-bit type.   */
-//#define ZMQ_HAUSNUMERO 156384712
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  0MQ errors.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************************************************************************************
+ *  A number random enough not to collide with different errno ranges on different OSes.  The
+ *  assumption is that error_t is at least 32-bit type.
+ */
+
 enum ZMQ_HAUSNUMERO = 156384712;
 
-/*  On Windows platform some of the standard POSIX errnos are not defined.    */
-/+
-#ifndef ENOTSUP
-#define ENOTSUP (ZMQ_HAUSNUMERO + 1)
-#endif
-#ifndef EPROTONOSUPPORT
-#define EPROTONOSUPPORT (ZMQ_HAUSNUMERO + 2)
-#endif
-#ifndef ENOBUFS
-#define ENOBUFS (ZMQ_HAUSNUMERO + 3)
-#endif
-#ifndef ENETDOWN
-#define ENETDOWN (ZMQ_HAUSNUMERO + 4)
-#endif
-#ifndef EADDRINUSE
-#define EADDRINUSE (ZMQ_HAUSNUMERO + 5)
-#endif
-#ifndef EADDRNOTAVAIL
-#define EADDRNOTAVAIL (ZMQ_HAUSNUMERO + 6)
-#endif
-#ifndef ECONNREFUSED
-#define ECONNREFUSED (ZMQ_HAUSNUMERO + 7)
-#endif
-#ifndef EINPROGRESS
-#define EINPROGRESS (ZMQ_HAUSNUMERO + 8)
-#endif
-#ifndef ENOTSOCK
-#define ENOTSOCK (ZMQ_HAUSNUMERO + 9)
-#endif
-#ifndef EMSGSIZE
-#define EMSGSIZE (ZMQ_HAUSNUMERO + 10)
-#endif
-#ifndef EAFNOSUPPORT
-#define EAFNOSUPPORT (ZMQ_HAUSNUMERO + 11)
-#endif
-#ifndef ENETUNREACH
-#define ENETUNREACH (ZMQ_HAUSNUMERO + 12)
-#endif
-#ifndef ECONNABORTED
-#define ECONNABORTED (ZMQ_HAUSNUMERO + 13)
-#endif
-#ifndef ECONNRESET
-#define ECONNRESET (ZMQ_HAUSNUMERO + 14)
-#endif
-#ifndef ENOTCONN
-#define ENOTCONN (ZMQ_HAUSNUMERO + 15)
-#endif
-#ifndef ETIMEDOUT
-#define ETIMEDOUT (ZMQ_HAUSNUMERO + 16)
-#endif
-#ifndef EHOSTUNREACH
-#define EHOSTUNREACH (ZMQ_HAUSNUMERO + 17)
-#endif
-#ifndef ENETRESET
-#define ENETRESET (ZMQ_HAUSNUMERO + 18)
-#endif
-+/
 version( Windows ) {
+
+    /***********************************************************************************************
+     *  On Windows platform some of the standard POSIX errnos are not defined.
+     */
     enum {
         ENOTSUP         = ZMQ_HAUSNUMERO + 1,
         EPROTONOSUPPORT ,
@@ -179,132 +136,485 @@ version( Windows ) {
         ENOTCONN        ,
         ETIMEDOUT       ,
         EHOSTUNREACH    ,
-        ENETRESET
+        ENETRESET       
     }
+
 }
-version( linux ) {
-    enum {
-        ENOTSUP         = ZMQ_HAUSNUMERO + 1,
-    }
+else version( linux ) {
+
+    /***********************************************************************************************
+     *  On Linux we extend the errnos with ENOTSUP.
+     */
+    enum ENOTSUP = ZMQ_HAUSNUMERO + 1;
+
 }
 else {
+
+    //TODO: add the lists for BSD and MacOS X.
     static assert( false, "Operating system not yet supported by DZMQ." );
+
 }
 
-/*  Native 0MQ error codes.                                                   */
-/+
-#define EFSM (ZMQ_HAUSNUMERO + 51)
-#define ENOCOMPATPROTO (ZMQ_HAUSNUMERO + 52)
-#define ETERM (ZMQ_HAUSNUMERO + 53)
-#define EMTHREAD (ZMQ_HAUSNUMERO + 54)
-+/
-enum {
-    EFSM            = ZMQ_HAUSNUMERO + 51,
-    ENOCOMPATPROTO  ,
-    ETERM           ,
-    EMTHREAD
-}
 
-/*  This function retrieves the errno as it is known to 0MQ library. The goal */
-/*  of this function is to make the code 100% portable, including where 0MQ   */
-/*  compiled with certain CRT library (on Windows) is linked to an            */
-/*  application that uses different CRT library.                              */
-//ZMQ_EXPORT int zmq_errno (void);
+/***************************************************************************************************
+ *  Native 0MQ error codes.
+ */
+
+enum    EFSM            = ZMQ_HAUSNUMERO + 51   ,
+        ENOCOMPATPROTO  = ZMQ_HAUSNUMERO + 52   ,
+        ETERM           = ZMQ_HAUSNUMERO + 53   ,
+        EMTHREAD        = ZMQ_HAUSNUMERO + 54   ;
+
+
+/***************************************************************************************************
+ *  This function retrieves the errno as it is known to 0MQ library. The goal of this function is to
+ *  make the code 100% portable, including where 0MQ compiled with certain CRT library (on Windows)
+ *  is linked to an application that uses different CRT library.
+ *
+ *  Returns: The value of the errno variable for the calling thread.
+ */
+
 int zmq_errno ();
 
-/*  Resolves system errors and 0MQ errors to human-readable string.           */
-//ZMQ_EXPORT const char *zmq_strerror (int errnum);
+
+/***************************************************************************************************
+ *  Resolves system errors and 0MQ errors to human-readable string.
+ *
+ *  The zmq_strerror() function shall return a pointer to an error message string corresponding to 
+ *  the error number specified by the errnum argument. As ØMQ defines additional error numbers over
+ *  and above those defined by the operating system, applications should use zmq_strerror() in 
+ *  preference to the standard strerror() function.
+ *
+ *  Returns: A pointer to an error message string (C style 0-terminated).
+ *
+ *  -----
+ *  auto ctx = zmq_ctx_new();
+ *  if ( ctx is null ) {
+ *      auto err = zmq_errno();
+ *      auto errstr = to!string( zmq_strerror( err ) );
+ *      // report error ...
+ *  }
+ *  -----
+ */
+
 const( char )* zmq_strerror ( int errnum );
 
-/******************************************************************************/
-/*  0MQ infrastructure (a.k.a. context) initialisation & termination.         */
-/******************************************************************************/
 
-/*  New API                                                                   */
-/*  Context options                                                           */
-/+
-#define ZMQ_IO_THREADS  1
-#define ZMQ_MAX_SOCKETS 2
-+/
-enum {
-    ZMQ_IO_THREADS  = 1,
-    ZMQ_MAX_SOCKETS
-}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  0MQ infrastructure (a.k.a. context) initialisation & termination.
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*  Default for new contexts                                                  */
-/+
-#define ZMQ_IO_THREADS_DFLT  1
-#define ZMQ_MAX_SOCKETS_DFLT 1024
-+/
+
+/***************************************************************************************************
+ *  Context options.
+ */
+
+enum    ZMQ_IO_THREADS  = 1 ,
+        ZMQ_MAX_SOCKETS = 2 ;
+
+
+/***************************************************************************************************
+ *  Default for new contexts.
+ */
+
 enum    ZMQ_IO_THREADS_DFLT     = 1     ,
         ZMQ_MAX_SOCKETS_DFLT    = 1024  ;
 
-/+
-ZMQ_EXPORT void *zmq_ctx_new (void);
-ZMQ_EXPORT int zmq_ctx_destroy (void *context);
-ZMQ_EXPORT int zmq_ctx_set (void *context, int option, int optval);
-ZMQ_EXPORT int zmq_ctx_get (void *context, int option);
-+/
-void* zmq_ctx_new ();
-int zmq_ctx_destroy ( void* context );
-int zmq_ctx_set ( void* context, int option, int opval );
-int zmq_ctx_get ( void* context, int option );
 
-/*  Old (legacy) API                                                          */
-/+
-ZMQ_EXPORT void *zmq_init (int io_threads);
-ZMQ_EXPORT int zmq_term (void *context);
-+/
+/***************************************************************************************************
+ *  The zmq_ctx_new() function creates a new ØMQ context.
+ *
+ *  This function replaces the deprecated function zmq_init(3).
+ *  
+ *  Thread_safety: 
+ *      A ØMQ context is thread safe and may be shared among as many application threads 
+ *      as necessary,  without any additional locking required on the part of the caller.
+ *
+ *  Returns: The zmq_ctx_new() function shall return an opaque handle to the newly created context 
+ *  if successful. Otherwise it shall return null and set errno to one of the values defined below.
+ *
+ *  See_Also: zmq_ctx_set, zmq_ctx_get, zmq_ctx_destroy.
+ */
+
+void* zmq_ctx_new ();
+
+
+/***************************************************************************************************
+ *  The zmq_ctx_destroy() function shall destroy the ØMQ context context.
+ *
+ *  Context termination is performed in the following steps:
+ *  $(UL
+ *      $(LI Any blocking operations currently in progress on sockets open within context shall 
+ *      return immediately with an error code of ETERM. With the exception of zmq_close(), any 
+ *      further operations on sockets open within context shall fail with an error code of ETERM.)
+ *
+ *      $(LI After interrupting all blocking calls, zmq_ctx_destroy() shall block until the 
+ *      following conditions are satisfied: 
+ *          $(UL $(LI All sockets open within context have been closed with zmq_close().))
+ *      )
+ *
+ *      $(LI For each socket within context, all messages sent by the application with zmq_send() 
+ *      have either been physically transferred to a network peer, or the socket's linger period set
+ *      with the ZMQ_LINGER socket option has expired.)
+ *  )
+ *
+ *  For further details regarding socket linger behavior refer to the ZMQ_LINGER option in 
+ *  zmq_setsockopt().
+ *
+ *  Params:
+ *      context = handle created with zmq_ctx_new()
+ *
+ *  Returns: zero if successful; otherwise -1 and set errno to one of the values defined below.
+ *
+ *  Errors: 
+ *  $(DL
+ *      $(DT EFAULT)    $(DD The provided context was invalid.)
+ *      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if needed.)
+ *  )
+ *
+ *  -----
+ *  auto context = zmq_ctx_new();
+ *  scope( exit ) {
+ *      auto rc = zmq_ctx_destroy( context );
+ *      if ( rc != 0 ) {
+ *          // attempt to handle/report error ...
+ *      }
+ *  }
+ *  -----
+ */
+
+int zmq_ctx_destroy ( void* context );
+
+
+/***************************************************************************************************
+ *  The zmq_ctx_set() function shall set the option specified by the option_name argument to the 
+ *  value of the option_value argument.
+ *
+ *  The zmq_ctx_set() function accepts the following options: 
+ *  $(DL
+ *      $(DT ZMQ_IO_THREADS) $(DD
+ *          $(B Set number of I/O threads.)
+ *          $(I Default value: 1.)
+ *          The ZMQ_IO_THREADS argument specifies the size of the ØMQ thread pool to handle I/O 
+ *          operations. If your application is using only the inproc transport for messaging you may
+ *          set this to zero, otherwise set it to at least one. This option only applies before 
+ *          creating any sockets on the context.
+ *      )
+ *      $(DT ZMQ_MAX_SOCKETS) $(DD
+ *          $(B Set maximum number of sockets.)
+ *          $(I Default value: 1024.)
+ *          The ZMQ_MAX_SOCKETS argument sets the maximum number of sockets allowed on the context.
+ *      )
+ *  )
+ *
+ *  Params:
+ *      context         = handle created with zmq_ctx_new()
+ *      option_name     = constant identifier for selected option
+ *      option_value    = new value for selected option
+ *
+ *  Returns: Zero if successful. Otherwise it returns -1 and sets errno to one of the values defined
+ *  below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EINVAL) $(DD The requested option option_name is unknown.)
+ *  )
+ *
+ *  -----
+ *  // Setting a limit on the number of sockets
+ *  auto context = zmq_ctx_new();
+ *  zmq_ctx_set (context, ZMQ_MAX_SOCKETS, 256);
+ *  auto max_sockets = zmq_ctx_get(context, ZMQ_MAX_SOCKETS);
+ *  assert (max_sockets == 256);
+ *  -----
+ */
+
+int zmq_ctx_set ( void* context, int option_name, int option_value );
+
+
+/***************************************************************************************************
+ *  The zmq_ctx_get() function shall return the option specified by the option_name argument.
+ *
+ *  The zmq_ctx_get() function accepts the following option names:
+ *  $(DL
+ *      $(DT ZMQ_IO_THREADS) $(DD
+ *          $(B Get number of I/O threads.)
+ *          The ZMQ_IO_THREADS argument returns the size of the ØMQ thread pool for this context.
+ *      )
+ *      $(DT ZMQ_MAX_SOCKETS) $(DD
+ *          $(B Set maximum number of sockets.)
+ *          The ZMQ_MAX_SOCKETS argument returns the maximum number of sockets allowed for this 
+ *          context.
+ *      )
+ *  )
+ *
+ *  Params:
+ *      context     = handle created with zmq_ctx_new()
+ *      option_name = constant identifier for selected option
+ *
+ *  Returns: A value of 0 or greater if successful. Otherwise it returns -1 and sets errno to one of
+ *  the values defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EINVAL) $(DD The requested option option_name is unknown.)
+ *  )
+ *
+ *  -----
+ *  // Setting a limit on the number of sockets
+ *  auto context = zmq_ctx_new();
+ *  zmq_ctx_set (context, ZMQ_MAX_SOCKETS, 256);
+ *  auto max_sockets = zmq_ctx_get(context, ZMQ_MAX_SOCKETS);
+ *  assert (max_sockets == 256);
+ *  -----
+ */
+
+int zmq_ctx_get ( void* context, int option_name );
+
+
+/***************************************************************************************************
+ *  Legacy API.  The zmq_init() function initialises a ØMQ context.
+ *
+ *  The io_threads argument specifies the size of the ØMQ thread pool to handle I/O operations. If 
+ *  your application is using only the inproc transport for messaging you may set this to zero, 
+ *  otherwise set it to at least one.
+ *
+ *  Thread_safety:
+ *      A ØMQ context is thread safe and may be shared among as many application threads as 
+ *      necessary, without any additional locking required on the part of the caller.
+ *
+ *  $(B This function is deprecated by zmq_ctx_new.)
+ *
+ *  Params:
+ *      io_threads = size of the 0MQ I/O thread pool
+ *
+ *  Returns: An opaque handle to the initialised context if successful. Otherwise it shall return 
+ *  null and set errno to one of the values defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EINVAL) $(DD An invalid number of io_threads was requested.)
+ *  )
+ */
+
+deprecated
 void* zmq_init ( int io_threads );
+
+
+/***************************************************************************************************
+ *  Legacy API.  The zmq_term() function shall terminate the ØMQ context context.
+ *
+ *  Context termination is performed in the following steps:
+ *  $(UL
+ *      $(LI Any blocking operations currently in progress on sockets open within context shall 
+ *      return immediately with an error code of ETERM. With the exception of zmq_close(), any 
+ *      further operations on sockets open within context shall fail with an error code of ETERM.)
+ *
+ *      $(LI After interrupting all blocking calls, zmq_term() shall block until the following 
+ *      conditions are satisfied:
+ *          $(UL $(LI All sockets open within context have been closed with zmq_close().))
+ *      )
+ *
+ *      $(LI For each socket within context, all messages sent by the application with zmq_send() 
+ *      have either been physically transferred to a network peer, or the socket's linger period set
+ *      with the ZMQ_LINGER socket option has expired.)
+ *  )
+ *
+ *  For further details regarding socket linger behaviour refer to the ZMQ_LINGER option in 
+ *  zmq_setsockopt.
+ *
+ *  $(B This function is deprecated by zmq_ctx_destroy.)
+ *
+ *  Params:
+ *      context = handle created with zmq_init
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EFAULT)    $(DD The provided context was invalid.)
+ *      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if needed.)
+ *  )
+ */
+
+deprecated
 int zmq_term ( void* context );
 
 
-/******************************************************************************/
-/*  0MQ message definition.                                                   */
-/******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  0MQ message definition.
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//typedef struct zmq_msg_t {unsigned char _ [32];} zmq_msg_t;
+
+/***************************************************************************************************
+ *  Opaque message type.  Never try to delve into one of these -- they are strictly for the 0MQ
+ *  library to handle and understand.  For you, they are pure mystery.
+ */
+
 struct zmq_msg_t {
-    ubyte[32] _;
-    //alias _ this;
+    private ubyte[32] _;
 }
 
-//typedef void (zmq_free_fn) (void *data, void *hint);
+
+/***************************************************************************************************
+ *  Callback type for freeing message buffers.  This function must have C linkage and be thread safe.
+ *
+ *  Params:
+ *      data  = pointer (void*) to buffer data
+ *      hint  = pointer (void*) to arbitrary user provided information
+ *
+ *  See_Also:
+ *      zmq_msg_init_data
+ */
+
 alias extern( C ) void function( void* data, void* hint )  zmq_free_fn;
 
-/+
-ZMQ_EXPORT int zmq_msg_init (zmq_msg_t *msg);
-ZMQ_EXPORT int zmq_msg_init_size (zmq_msg_t *msg, size_t size);
-ZMQ_EXPORT int zmq_msg_init_data (zmq_msg_t *msg, void *data,
-    size_t size, zmq_free_fn *ffn, void *hint);
-ZMQ_EXPORT int zmq_msg_send (zmq_msg_t *msg, void *s, int flags);
-ZMQ_EXPORT int zmq_msg_recv (zmq_msg_t *msg, void *s, int flags);
-ZMQ_EXPORT int zmq_msg_close (zmq_msg_t *msg);
-ZMQ_EXPORT int zmq_msg_move (zmq_msg_t *dest, zmq_msg_t *src);
-ZMQ_EXPORT int zmq_msg_copy (zmq_msg_t *dest, zmq_msg_t *src);
-ZMQ_EXPORT void *zmq_msg_data (zmq_msg_t *msg);
-ZMQ_EXPORT size_t zmq_msg_size (zmq_msg_t *msg);
-ZMQ_EXPORT int zmq_msg_more (zmq_msg_t *msg);
-ZMQ_EXPORT int zmq_msg_get (zmq_msg_t *msg, int option);
-ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
-+/
+
+/***************************************************************************************************
+ *  The zmq_msg_init() function shall initialise the message object referenced by msg to represent 
+ *  an empty message. This function is most useful when called before receiving a message with 
+ *  zmq_recv().
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  The functions zmq_msg_init(), zmq_msg_init_data() and zmq_msg_init_size() are mutually 
+ *  exclusive. Never initialize the same zmq_msg_t twice.
+ *
+ *  Params:
+ *      msg = pointer to uninitialized message
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  -----
+ *  // Receiving a message from a socket
+ *  zmq_msg_t msg;
+ *  rc = zmq_msg_init( &msg );
+ *  assert( rc == 0 );
+ *  rc = zmq_recvmsg( socket, &msg, 0 );
+ *  assert( rc >= 0 );
+ *  -----
+ */
+
 int zmq_msg_init ( zmq_msg_t* msg );
+
+
+/***************************************************************************************************
+ *  The zmq_msg_init_size() function shall allocate any resources required to store a message size 
+ *  bytes long and initialise the message object referenced by msg to represent the newly allocated
+ *  message.
+ *
+ *  The implementation shall choose whether to store message content on the stack (small messages) 
+ *  or on the heap (large messages). For performance reasons zmq_msg_init_size() shall not clear the
+ *  message data.
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  The functions zmq_msg_init(), zmq_msg_init_data() and zmq_msg_init_size() are mutually 
+ *  exclusive. Never initialize the same zmq_msg_t twice.
+ *
+ *  Params:
+ *      msg     = pointer to uninitialized message
+ *      size    = desired byte-wise size
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT ENOMEM) $(DD Insufficient storage space is available.)
+ *  )
+ */
+
 int zmq_msg_init_size ( zmq_msg_t* msg, size_t size );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_init_data ( zmq_msg_t* msg, void* data, size_t size, zmq_free_fn ffn, void* hint );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_send ( zmq_msg_t* msg, void* s, int flags );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_recv ( zmq_msg_t* msg, void* s, int flags );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_close ( zmq_msg_t* msg );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_move ( zmq_msg_t* dest, zmq_msg_t* src );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_copy ( zmq_msg_t* dest, zmq_msg_t* src );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 void* zmq_msg_data ( zmq_msg_t* msg );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 size_t zmq_msg_size ( zmq_msg_t* msg );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_more ( zmq_msg_t* msg );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_get ( zmq_msg_t* msg, int option );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_msg_set ( zmq_msg_t* msg, int option, int optval );
 
-/******************************************************************************/
-/*  0MQ socket definition.                                                    */
-/******************************************************************************/
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  0MQ socket definition.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /*  Socket types.                                                             */ 
 /+
@@ -334,6 +644,11 @@ enum {
     ZMQ_XSUB
 }
 
+
+/***************************************************************************************************
+ *  
+ */
+
 /*  Deprecated aliases                                                        */
 /+
 #define ZMQ_XREQ ZMQ_DEALER
@@ -343,6 +658,11 @@ deprecated enum {
     ZMQ_XREQ    = ZMQ_DEALER    ,
     ZMQ_XREP    = ZMQ_ROUTER    
 }
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /*  Socket options.                                                           */
 /+
@@ -415,9 +735,18 @@ enum {
 }
 
 
+/***************************************************************************************************
+ *  
+ */
+
 /*  Message options                                                           */
 //#define ZMQ_MORE 1
 enum ZMQ_MORE = 1;
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /*  Send/recv options.                                                        */
 /+
@@ -426,6 +755,11 @@ enum ZMQ_MORE = 1;
 +/
 enum    ZMQ_DONTWAIT    = 1 ,
         ZMQ_SNDMORE     = 2 ;
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /*  Deprecated aliases                                                        */
 /+
@@ -437,9 +771,15 @@ deprecated enum {
     ZMQ_ROUTER_BEHAVIOR = ZMQ_ROUTER_MANDATORY
 }
 
-/******************************************************************************/
-/*  0MQ socket events and monitoring                                          */
-/******************************************************************************/
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  0MQ socket events and monitoring
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /*  Socket transport events (tcp and ipc only)                                */
 /+
@@ -489,6 +829,11 @@ enum {
                                 |   ZMQ_EVENT_CLOSE_FAILED
                                 |   ZMQ_EVENT_DISCONNECTED
 }
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /*  Socket event data (union member per event)                                */
 /+
@@ -548,6 +893,11 @@ struct zmq_event_t {
     }
 }
 
+
+/***************************************************************************************************
+ *  
+ */
+
 /+
 ZMQ_EXPORT void *zmq_socket (void *, int type);
 ZMQ_EXPORT int zmq_close (void *s);
@@ -581,6 +931,11 @@ int zmq_socket_monitor ( void* s, const( char )* addr, int events );
 int zmq_sendmsg ( void* s, zmq_msg_t* msg, int flags );
 int zmq_recvmsg ( void* s, zmq_msg_t* msg, int flags );
 
+
+/***************************************************************************************************
+ *  
+ */
+
 /*  Experimental                                                              */
 //struct iovec;
 version( Windows ) {
@@ -590,6 +945,11 @@ else {
     import core.sys.posix.sys.uio;
 }
 
+
+/***************************************************************************************************
+ *  
+ */
+
 /+
 ZMQ_EXPORT int zmq_sendiov (void *s, struct iovec *iov, size_t count, int flags);
 ZMQ_EXPORT int zmq_recviov (void *s, struct iovec *iov, size_t *count, int flags);
@@ -597,9 +957,15 @@ ZMQ_EXPORT int zmq_recviov (void *s, struct iovec *iov, size_t *count, int flags
 int zmq_sendiov ( void* s, iovec* iov, size_t count, int flags );
 int zmq_recviov ( void* s, iovec* iov, size_t* count, int flags );
 
-/******************************************************************************/
-/*  I/O multiplexing.                                                         */
-/******************************************************************************/
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//  I/O multiplexing.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /+
 #define ZMQ_POLLIN 1
@@ -609,6 +975,11 @@ int zmq_recviov ( void* s, iovec* iov, size_t* count, int flags );
 enum    ZMQ_POLLIN  = 1 ,
         ZMQ_POLLOUT = 2 ,
         ZMQ_POLLERR = 4 ;
+
+
+/***************************************************************************************************
+ *  
+ */
 
 /+
 typedef struct
@@ -637,13 +1008,28 @@ struct zmq_pollitem_t {
     short revents;
 }
 
+
+/***************************************************************************************************
+ *  
+ */
+
 //ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items, int nitems, long timeout);
 int zmq_poll ( zmq_pollitem_t* items, int nitems, int timeout );
+
+
+/***************************************************************************************************
+ *  
+ */
 
 //  Built-in message proxy (3-way)
 
 //ZMQ_EXPORT int zmq_proxy (void *frontend, void *backend, void *capture);
 int zmq_proxy ( void* frontend, void* backend, void* capture );
+
+
+/***************************************************************************************************
+ *  
+ */
 
 //  Deprecated aliases
 /+
@@ -656,16 +1042,13 @@ deprecated enum {
     ZMQ_FORWARDER   ,
     ZMQ_QUEUE
 }
+
+
+/***************************************************************************************************
+ *  
+ */
+
 //  Deprecated method
 //ZMQ_EXPORT int zmq_device (int type, void *frontend, void *backend);
 deprecated int zmq_device ( int type, void* frontend, void* backend );
 
-/+
-#undef ZMQ_EXPORT
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-+/

@@ -1,9 +1,6 @@
 /*
-    0MQ header translated into the D Programming Language
-    by Christopher Nicholson-Sauls (2012).
-*/
-
-/*
+    Original notice from 0MQ project:
+    --------------------------------------------------------------------------------------------
     Copyright (c) 2009-2011 250bpm s.r.o.
     Copyright (c) 2007-2011 Other contributors as noted in the AUTHORS file
 
@@ -21,44 +18,66 @@
 
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    --------------------------------------------------------------------------------------------
 */
 
+/***************************************************************************************************
+ *  0MQ header translated into the D Programming Language.
+ *
+ *  Helper functions are used by perf tests so that they don't have to care about minutiae of
+ *  time-related functions on different OS platforms.
+ *
+ * ----------
+ *  auto watch = zmq_stopwatch_start();
+ *  // do some work... or fake it with zmq_sleep( seconds )
+ *  auto span = zmq_stopwatch_stop( watch );
+ *  writefln( "Completed in %s usecs.", span );
+ * ----------
+ *
+ *  Authors:    Christopher Nicholson-Sauls <ibisbasenji@gmail.com>
+ *  Copyright:  Public Domain (within limits of license)
+ *  Date:       October 17, 2012
+ *  License:    GPLv3 (see file COPYING), LGPLv3 (see file COPYING.LESSER)
+ *  Version:    0.1a
+ *
+ */
 module zmq.utils;
 
+
+/***************************************************************************************************
+ *  Direct compiler to generate linkage with the 0MQ library.
+ */
+pragma( lib, "zmq" );
+
+
+/***************************************************************************************************
+ *  C linkage for all function prototypes.
+ */
 extern( C ):
 
-/+
-/*  Handle DSO symbol visibility                                             */
-#if defined _WIN32
-#   if defined DLL_EXPORT
-#       define ZMQ_EXPORT __declspec(dllexport)
-#   else
-#       define ZMQ_EXPORT __declspec(dllimport)
-#   endif
-#else
-#   if defined __SUNPRO_C  || defined __SUNPRO_CC
-#       define ZMQ_EXPORT __global
-#   elif (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER
-#       define ZMQ_EXPORT __attribute__ ((visibility("default")))
-#   else
-#       define ZMQ_EXPORT
-#   endif
-#endif
-+/
-//TODO: Try to support export cleanly.
 
-/*  Helper functions are used by perf tests so that they don't have to care   */
-/*  about minutiae of time-related functions on different OS platforms.       */
-
-/*  Starts the stopwatch. Returns the handle to the watch.                    */
-//ZMQ_EXPORT void *zmq_stopwatch_start (void);
+/***************************************************************************************************
+ *  Starts the stopwatch.
+ *
+ *  Returns: stopwatch resource handle; handle with care.
+ */
 void* zmq_stopwatch_start ();
 
-/*  Stops the stopwatch. Returns the number of microseconds elapsed since     */
-/*  the stopwatch was started.                                                */
-//ZMQ_EXPORT unsigned long zmq_stopwatch_stop (void *watch_);
+
+/***************************************************************************************************
+ *  Stops the stopwatch.
+ *
+ *  Params:
+ *      watch_  = stopwatch resource handle (created with zmq_stopwatch_start)
+ *  Returns: the number of microseconds elapsed since the stopwatch was started.
+ */
 uint zmq_stopwatch_stop ( void* watch_ );
 
-/*  Sleeps for specified number of seconds.                                   */
-//ZMQ_EXPORT void zmq_sleep (int seconds_);
+
+/***************************************************************************************************
+ *  Sleeps for specified number of seconds.
+ *
+ *  Params:
+ *      seconds_    = the number of seconds to sleep
+ */
 void zmq_sleep ( int seconds_ );

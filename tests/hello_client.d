@@ -19,6 +19,7 @@ void main () {
         writefln( "Received reply %d: [%s]", nbr, reply );
     }
     
+    requester.send( "" );
     destroy( requester );
 }
 

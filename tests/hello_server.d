@@ -16,9 +16,14 @@ void main () {
         auto request = responder.receive!string();
         writefln( "Received request: [%s]", request );
         
-        Thread.sleep( dur!`seconds`( 1 ) );
+        if ( request.length == 0 ) {
+            break;
+        }
         
+        Thread.sleep( dur!`seconds`( 1 ) );
         responder.send( "World" );
     }
+    
+    destroy( responder );
 }
 

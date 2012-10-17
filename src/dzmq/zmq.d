@@ -9,6 +9,7 @@
 module dzmq.zmq;
 
 import  std.array   ,
+        std.conv    ,
         std.range   ,
         std.string  ;
 import  zmq.zmq     ;
@@ -32,6 +33,9 @@ struct ZMQVersion { static:
 class ZMQException : Exception {
 
 
+    /*******************************************************************************************
+     *
+     */
     int code;
 
 
@@ -40,7 +44,7 @@ class ZMQException : Exception {
      */
     this ( int a_code, string msg, string file = null, size_t line = 0 ) {
         code = a_code;
-        super( msg, file, line );
+        super( to!string( zmq_strerror( code ) ) ~ " -- " ~ msg, file, line );
     }
 
     ///ditto
@@ -71,6 +75,8 @@ final class ZMQContext {
     
     unittest {
         auto ctx = new ZMQContext;
+        scope( exit ) destroy( ctx );
+        
         assert( ctx !is null );
         assert( ctx.ioThreads == ZMQ_IO_THREADS_DFLT );
     }
@@ -82,6 +88,9 @@ final class ZMQContext {
     ~this () {
         if ( handle is null ) {
             return;
+        }
+        foreach ( s ; sockets ) {
+            destroy( s );
         }
         auto rc = zmq_ctx_destroy( handle );
         if ( rc != 0 ) {
@@ -103,11 +112,22 @@ final class ZMQContext {
     int ioThreads ( int val )
     
     in {
-        assert( val > 0, "It is useless to have zero (or negative!?) io threads" );
+        assert( val >= 0, "It is meaningless to have a negative number of io threads" );
     }
     
     body {
         return zmq_ctx_set( handle, ZMQ_IO_THREADS, val );
+    }
+    
+    unittest {
+        auto ctx = new ZMQContext;
+        scope( exit ) destroy( ctx );
+        
+        assert( ctx.ioThreads == ZMQ_IO_THREADS_DFLT );
+        
+        auto n = ZMQ_IO_THREADS_DFLT * 2;
+        ctx.ioThreads = n;
+        assert( ctx.ioThreads == n );
     }
 
 
@@ -130,6 +150,17 @@ final class ZMQContext {
     body {
         return zmq_ctx_set( handle, ZMQ_MAX_SOCKETS, val );
     }
+    
+    unittest {
+        auto ctx = new ZMQContext;
+        scope( exit ) destroy( ctx );
+        
+        assert( ctx.maxSockets == ZMQ_MAX_SOCKETS_DFLT );
+        
+        auto n = ZMQ_MAX_SOCKETS_DFLT * 2;
+        ctx.maxSockets = n;
+        assert( ctx.maxSockets == n );
+    }
 
 
     /*******************************************************************************************
@@ -137,6 +168,15 @@ final class ZMQContext {
      */
     ZMQPoller poller ( int size = ZMQPoller.DEFAULT_SIZE ) {
         return new ZMQPoller( this, size );
+    }
+    
+    unittest {
+        auto ctx = new ZMQContext;
+        scope( exit ) destroy( ctx );
+        
+        auto p = ctx.poller();
+        assert( p !is null );
+        destroy( p );
     }
 
 
@@ -153,6 +193,15 @@ final class ZMQContext {
         auto sock = new ZMQSocket( handle, type );
         sockets ~= sock;
         return sock;
+    }
+
+    unittest {
+        auto ctx = new ZMQContext;
+        scope( exit ) destroy( ctx );
+        
+        auto s = ctx.socket( ZMQSocket.Type.init );
+        assert( p !is null );
+        destroy( s );
     }
 
 
@@ -236,6 +285,21 @@ final class ZMQSocket {
     /*******************************************************************************************
      *
      */
+    @property
+    Type type () {
+        int optval;
+        size_t sz = optval.sizeof;
+        auto rc = zmq_getsockopt( handle, ZMQ_TYPE, &optval, &sz );
+        if ( rc != 0 ) {
+            throw new ZMQException( "Failed to get socket option value for ZMQ_TYPE" );
+        }
+        return cast( Type ) optval;
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
     void bind ( string addr ) {
         auto rc = zmq_bind( handle, toStringz( addr ) );
         if ( rc != 0 ) {
@@ -293,28 +357,23 @@ final class ZMQSocket {
         zmq_msg_t msg;
         auto rc = zmq_msg_init( &msg );
         if ( rc != 0 ) {
-            throw new ZMQException( "" );
+            throw new ZMQException( "Failed to initialize message" );
+        }
+        scope( exit ) {
+            rc = zmq_msg_close( &msg );
+            if ( rc != 0 ) {
+                throw new ZMQException( "Failed to close message" );
+            }
         }
         
         rc = zmq_recvmsg( handle, &msg, flags );
-        auto err = zmq_errno();
         if ( rc < 0 ) {
-            if ( err != EAGAIN ) {
-                zmq_msg_close( &msg );
-                throw new ZMQException( "" );
+            if ( zmq_errno() == EAGAIN ) {
+                return null;
             }
-            rc = zmq_msg_close( &msg );
-            if ( rc != 0 ) {
-                throw new ZMQException( "" );
-            }
-            return null;
+            throw new ZMQException( "Failed to receive message" );
         }
-       
-        auto data = zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ].dup;
-        rc = zmq_msg_close( &msg );
-        assert( rc == 0 );
-        
-        return data;
+        return zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ].dup;
     }
 
     

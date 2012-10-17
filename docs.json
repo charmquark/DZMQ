@@ -1,0 +1,977 @@
+[
+{
+"name" : "zmq.utils",
+"kind" : "module",
+"file" : "src\/zmq\/utils.d",
+"comment" : "\n  0MQ header translated into the D Programming Language.\n\n  Helper functions are used by perf tests so that they don't have to care about minutiae of\n  time-related functions on different OS platforms.\n\n ----------\n  auto watch = zmq_stopwatch_start();\n  \/\/ do some work... or fake it with zmq_sleep( seconds )\n  auto span = zmq_stopwatch_stop( watch );\n  writefln( \"Completed in %s usecs.\", span );\n ----------\n\n  Authors:    Christopher Nicholson-Sauls <ibisbasenji@gmail.com>\n  Copyright:  Public Domain (within limits of license)\n  Date:       October 17, 2012\n  License:    GPLv3 (see file COPYING), LGPLv3 (see file COPYING.LESSER)\n  Version:    0.1a\n\n \n",
+"members" : [
+{
+"name" : "zmq_stopwatch_start",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void*()",
+"comment" : "\n  Starts the stopwatch.\n\n  Returns: stopwatch resource handle; handle with care.\n \n\n  C linkage for all function prototypes.\n \n",
+"line" : 64}
+,
+{
+"name" : "zmq_stopwatch_stop",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) uint(void* watch_)",
+"comment" : "\n  Stops the stopwatch.\n\n  Params:\n      watch_  = stopwatch resource handle (created with zmq_stopwatch_start)\n  Returns: the number of microseconds elapsed since the stopwatch was started.\n \n\n  C linkage for all function prototypes.\n \n",
+"line" : 74}
+,
+{
+"name" : "zmq_sleep",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void(int seconds_)",
+"comment" : "\n  Sleeps for specified number of seconds.\n\n  Params:\n      seconds_    = the number of seconds to sleep\n \n\n  C linkage for all function prototypes.\n \n",
+"line" : 83}
+]
+}
+,
+{
+"name" : "zmq.zmq",
+"kind" : "module",
+"file" : "src\/zmq\/zmq.d",
+"comment" : "\n  0MQ header translated into the D Programming Language.\n\n  While it is certainly possible to use this module directly, it is generally preferable (from a\n  user code point of view) to instead use the wrapper in module dzmq.zmq.\n\n  Much of this documentation is lifted directly from the 0MQ API documentation available at\n  $(LINK http:\/\/api.zeromq.org\/3-2:__start), which is copyright (c) 2007-2012 iMatix Corporation,\n  and licensed under the Creative Commons Attribution-Share Alike 3.0 License. ØMQ is copyright\n  (c) Copyright (c) 2007-2012 iMatix Corporation and Contributors. ØMQ is free software licensed\n  under the LGPL. ØMQ, ZeroMQ, and 0MQ are trademarks of iMatix Corporation.\n\n  Where appropriate, minor edits have been made to fit the style of D, or for brevity.\n\n  Authors:    Christopher Nicholson-Sauls <ibisbasenji@gmail.com>\n  Copyright:  Public Domain (within limits of license)\n  Date:       October 17, 2012\n  License:    GPLv3 (see file COPYING), LGPLv3 (see file COPYING.LESSER)\n  Version:    0.1a\n\n \n",
+"members" : [
+{
+"name" : "ZMQ_VERSION_MAJOR",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  Version constants for compile-time API version detection.\n \n",
+"line" : 72}
+,
+{
+"name" : "ZMQ_VERSION_MINOR",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  Version constants for compile-time API version detection.\n \n",
+"line" : 73}
+,
+{
+"name" : "ZMQ_VERSION_PATCH",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  Version constants for compile-time API version detection.\n \n",
+"line" : 74}
+,
+{
+"name" : "ZMQ_VERSION",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  Version constants for compile-time API version detection.\n \n",
+"line" : 77}
+,
+{
+"name" : "zmq_version",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void(int* major, int* minor, int* patch)",
+"comment" : "\n  Run-time API version detection.\n\n  The zmq_version() function shall fill in the integer variables pointed to by the major, minor\n  and patch arguments with the major, minor and patch level components of the ØMQ library version.\n\n  This functionality is intended for applications or language bindings dynamically linking to the\n  ØMQ library that wish to determine the actual version of the ØMQ library they are using.\n\n  Params:\n      major   = pointer to variable receiving major version number\n      minor   = pointer to variable receiving minor version number\n      patch   = pointer to variable receiving patch version number\n\n  -----\n  int major, minor, patch;\n  zmq_version( &major, &minor, &patch );\n  writefln( \"Current 0MQ version is %s.%s.%s\", major, minor, patch );\n  -----\n \n",
+"line" : 101}
+,
+{
+"name" : "ZMQ_HAUSNUMERO",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  A number random enough not to collide with different errno ranges on different OSes.  The\n  assumption is that error_t is at least 32-bit type.\n \n",
+"line" : 114}
+,
+{
+"name" : "ENOTSUP",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  On Linux we extend the errnos with ENOTSUP.\n     \n",
+"line" : 148}
+,
+{
+"name" : "EFSM",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  Native 0MQ error codes.\n \n",
+"line" : 163}
+,
+{
+"name" : "ENOCOMPATPROTO",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  Native 0MQ error codes.\n \n",
+"line" : 164}
+,
+{
+"name" : "ETERM",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  Native 0MQ error codes.\n \n",
+"line" : 165}
+,
+{
+"name" : "EMTHREAD",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  Native 0MQ error codes.\n \n",
+"line" : 166}
+,
+{
+"name" : "zmq_errno",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int()",
+"comment" : "\n  This function retrieves the errno as it is known to 0MQ library. The goal of this function is to\n  make the code 100% portable, including where 0MQ compiled with certain CRT library (on Windows)\n  is linked to an application that uses different CRT library.\n\n  Returns: The value of the errno variable for the calling thread.\n \n",
+"line" : 177}
+,
+{
+"name" : "zmq_strerror",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) const(char)*(int errnum)",
+"comment" : "\n  Resolves system errors and 0MQ errors to human-readable string.\n\n  The zmq_strerror() function shall return a pointer to an error message string corresponding to\n  the error number specified by the errnum argument. As ØMQ defines additional error numbers over\n  and above those defined by the operating system, applications should use zmq_strerror() in\n  preference to the standard strerror() function.\n\n  Returns: A pointer to an error message string (C style 0-terminated).\n\n  -----\n  auto ctx = zmq_ctx_new();\n  if ( ctx is null ) {\n      auto err = zmq_errno();\n      auto errstr = to!string( zmq_strerror( err ) );\n      \/\/ report error ...\n  }\n  -----\n \n",
+"line" : 200}
+,
+{
+"name" : "ZMQ_IO_THREADS",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  Context options.\n \n",
+"line" : 212}
+,
+{
+"name" : "ZMQ_MAX_SOCKETS",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n  Context options.\n \n",
+"line" : 213}
+,
+{
+"name" : "ZMQ_IO_THREADS_DFLT",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  Default for new contexts.\n \n",
+"line" : 220}
+,
+{
+"name" : "ZMQ_MAX_SOCKETS_DFLT",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n  Default for new contexts.\n \n",
+"line" : 221}
+,
+{
+"name" : "zmq_ctx_new",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void*()",
+"comment" : "\n  The zmq_ctx_new() function creates a new ØMQ context.\n\n  This function replaces the deprecated function zmq_init(3).\n\n  Thread_safety:\n      A ØMQ context is thread safe and may be shared among as many application threads\n      as necessary,  without any additional locking required on the part of the caller.\n\n  Returns: The zmq_ctx_new() function shall return an opaque handle to the newly created context\n  if successful. Otherwise it shall return null and set errno to one of the values defined below.\n\n  See_Also: zmq_ctx_set, zmq_ctx_get, zmq_ctx_destroy.\n \n",
+"line" : 239}
+,
+{
+"name" : "zmq_ctx_destroy",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* context)",
+"comment" : "\n  The zmq_ctx_destroy() function shall destroy the ØMQ context context.\n\n  Context termination is performed in the following steps:\n  $(UL\n      $(LI Any blocking operations currently in progress on sockets open within context shall\n      return immediately with an error code of ETERM. With the exception of zmq_close(), any\n      further operations on sockets open within context shall fail with an error code of ETERM.)\n\n      $(LI After interrupting all blocking calls, zmq_ctx_destroy() shall block until the\n      following conditions are satisfied:\n          $(UL $(LI All sockets open within context have been closed with zmq_close().))\n      )\n\n      $(LI For each socket within context, all messages sent by the application with zmq_send()\n      have either been physically transferred to a network peer, or the socket's linger period set\n      with the ZMQ_LINGER socket option has expired.)\n  )\n\n  For further details regarding socket linger behavior refer to the ZMQ_LINGER option in\n  zmq_setsockopt().\n\n  Params:\n      context = handle created with zmq_ctx_new()\n\n  Returns: zero if successful; otherwise -1 and set errno to one of the values defined below.\n\n  Errors:\n  $(DL\n      $(DT EFAULT)    $(DD The provided context was invalid.)\n      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if needed.)\n  )\n\n  -----\n  auto context = zmq_ctx_new();\n  scope( exit ) {\n      auto rc = zmq_ctx_destroy( context );\n      if ( rc != 0 ) {\n          \/\/ attempt to handle\/report error ...\n      }\n  }\n  -----\n \n",
+"line" : 286}
+,
+{
+"name" : "zmq_ctx_set",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* context, int option_name, int option_value)",
+"comment" : "\n  The zmq_ctx_set() function shall set the option specified by the option_name argument to the\n  value of the option_value argument.\n\n  The zmq_ctx_set() function accepts the following options:\n  $(DL\n      $(DT ZMQ_IO_THREADS) $(DD\n          $(B Set number of I\/O threads.)\n          $(I Default value: 1.)\n          The ZMQ_IO_THREADS argument specifies the size of the ØMQ thread pool to handle I\/O\n          operations. If your application is using only the inproc transport for messaging you may\n          set this to zero, otherwise set it to at least one. This option only applies before\n          creating any sockets on the context.\n      )\n      $(DT ZMQ_MAX_SOCKETS) $(DD\n          $(B Set maximum number of sockets.)\n          $(I Default value: 1024.)\n          The ZMQ_MAX_SOCKETS argument sets the maximum number of sockets allowed on the context.\n      )\n  )\n\n  Params:\n      context         = handle created with zmq_ctx_new()\n      option_name     = constant identifier for selected option\n      option_value    = new value for selected option\n\n  Returns: Zero if successful. Otherwise it returns -1 and sets errno to one of the values defined\n  below.\n\n  Errors:\n  $(DL\n      $(DT EINVAL) $(DD The requested option option_name is unknown.)\n  )\n\n  -----\n  \/\/ Setting a limit on the number of sockets\n  auto context = zmq_ctx_new();\n  zmq_ctx_set (context, ZMQ_MAX_SOCKETS, 256);\n  auto max_sockets = zmq_ctx_get(context, ZMQ_MAX_SOCKETS);\n  assert (max_sockets == 256);\n  -----\n \n",
+"line" : 332}
+,
+{
+"name" : "zmq_ctx_get",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* context, int option_name)",
+"comment" : "\n  The zmq_ctx_get() function shall return the option specified by the option_name argument.\n\n  The zmq_ctx_get() function accepts the following option names:\n  $(DL\n      $(DT ZMQ_IO_THREADS) $(DD\n          $(B Get number of I\/O threads.)\n          The ZMQ_IO_THREADS argument returns the size of the ØMQ thread pool for this context.\n      )\n      $(DT ZMQ_MAX_SOCKETS) $(DD\n          $(B Set maximum number of sockets.)\n          The ZMQ_MAX_SOCKETS argument returns the maximum number of sockets allowed for this\n          context.\n      )\n  )\n\n  Params:\n      context     = handle created with zmq_ctx_new()\n      option_name = constant identifier for selected option\n\n  Returns: A value of 0 or greater if successful. Otherwise it returns -1 and sets errno to one of\n  the values defined below.\n\n  Errors:\n  $(DL\n      $(DT EINVAL) $(DD The requested option option_name is unknown.)\n  )\n\n  -----\n  \/\/ Setting a limit on the number of sockets\n  auto context = zmq_ctx_new();\n  zmq_ctx_set (context, ZMQ_MAX_SOCKETS, 256);\n  auto max_sockets = zmq_ctx_get(context, ZMQ_MAX_SOCKETS);\n  assert (max_sockets == 256);\n  -----\n \n",
+"line" : 372}
+,
+{
+"name" : "zmq_init",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void*(int io_threads)",
+"comment" : "\n  Legacy API.  The zmq_init() function initialises a ØMQ context.\n\n  The io_threads argument specifies the size of the ØMQ thread pool to handle I\/O operations. If\n  your application is using only the inproc transport for messaging you may set this to zero,\n  otherwise set it to at least one.\n\n  Thread_safety:\n      A ØMQ context is thread safe and may be shared among as many application threads as\n      necessary, without any additional locking required on the part of the caller.\n\n  $(B This function is deprecated by zmq_ctx_new.)\n\n  Params:\n      io_threads = size of the 0MQ I\/O thread pool\n\n  Returns: An opaque handle to the initialised context if successful. Otherwise it shall return\n  null and set errno to one of the values defined below.\n\n  Errors:\n  $(DL\n      $(DT EINVAL) $(DD An invalid number of io_threads was requested.)\n  )\n \n",
+"line" : 401}
+,
+{
+"name" : "zmq_term",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* context)",
+"comment" : "\n  Legacy API.  The zmq_term() function shall terminate the ØMQ context context.\n\n  Context termination is performed in the following steps:\n  $(UL\n      $(LI Any blocking operations currently in progress on sockets open within context shall\n      return immediately with an error code of ETERM. With the exception of zmq_close(), any\n      further operations on sockets open within context shall fail with an error code of ETERM.)\n\n      $(LI After interrupting all blocking calls, zmq_term() shall block until the following\n      conditions are satisfied:\n          $(UL $(LI All sockets open within context have been closed with zmq_close().))\n      )\n\n      $(LI For each socket within context, all messages sent by the application with zmq_send()\n      have either been physically transferred to a network peer, or the socket's linger period set\n      with the ZMQ_LINGER socket option has expired.)\n  )\n\n  For further details regarding socket linger behaviour refer to the ZMQ_LINGER option in\n  zmq_setsockopt.\n\n  $(B This function is deprecated by zmq_ctx_destroy.)\n\n  Params:\n      context = handle created with zmq_init\n\n  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values\n  defined below.\n\n  Errors:\n  $(DL\n      $(DT EFAULT)    $(DD The provided context was invalid.)\n      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if needed.)\n  )\n \n",
+"line" : 442}
+,
+{
+"name" : "zmq_msg_t",
+"kind" : "struct",
+"protection" : "public",
+"comment" : "\n\n\n  Opaque message type.  Never try to delve into one of these -- they are strictly for the 0MQ\n  library to handle and understand.  For you, they are pure mystery.\n \n",
+"line" : 455,
+"members" : [
+{
+"name" : "_",
+"kind" : "variable",
+"protection" : "private",
+"type" : "ubyte[32LU]",
+"line" : 456}
+]
+}
+,
+{
+"name" : "zmq_free_fn",
+"kind" : "alias",
+"protection" : "public",
+"type" : "extern (C) void function(void* data, void* hint)",
+"comment" : "\n  Callback type for freeing message buffers.  This function must have C linkage and be thread safe.\n\n  Params:\n      data  = pointer (void*) to buffer data\n      hint  = pointer (void*) to arbitrary user provided information\n\n  See_Also:\n      zmq_msg_init_data\n \n",
+"line" : 471}
+,
+{
+"name" : "zmq_msg_init",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg)",
+"comment" : "\n  The zmq_msg_init() function shall initialise the message object referenced by msg to represent\n  an empty message. This function is most useful when called before receiving a message with\n  zmq_recv().\n\n  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.\n\n  The functions zmq_msg_init(), zmq_msg_init_data() and zmq_msg_init_size() are mutually\n  exclusive. Never initialize the same zmq_msg_t twice.\n\n  Params:\n      msg = pointer to uninitialized message\n\n  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values\n  defined below.\n\n  -----\n  \/\/ Receiving a message from a socket\n  zmq_msg_t msg;\n  rc = zmq_msg_init( &msg );\n  assert( rc == 0 );\n  rc = zmq_recvmsg( socket, &msg, 0 );\n  assert( rc >= 0 );\n  -----\n \n",
+"line" : 500}
+,
+{
+"name" : "zmq_msg_init_size",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg, ulong size)",
+"comment" : "\n  The zmq_msg_init_size() function shall allocate any resources required to store a message size\n  bytes long and initialise the message object referenced by msg to represent the newly allocated\n  message.\n\n  The implementation shall choose whether to store message content on the stack (small messages)\n  or on the heap (large messages). For performance reasons zmq_msg_init_size() shall not clear the\n  message data.\n\n  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.\n\n  The functions zmq_msg_init(), zmq_msg_init_data() and zmq_msg_init_size() are mutually\n  exclusive. Never initialize the same zmq_msg_t twice.\n\n  Params:\n      msg     = pointer to uninitialized message\n      size    = desired byte-wise size\n\n  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values\n  defined below.\n\n  Errors:\n  $(DL\n      $(DT ENOMEM) $(DD Insufficient storage space is available.)\n  )\n \n",
+"line" : 530}
+,
+{
+"name" : "zmq_msg_init_data",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg, void* data, ulong size, extern (C) void function(void* data, void* hint) ffn, void* hint)",
+"comment" : "\n\n \n",
+"line" : 537}
+,
+{
+"name" : "zmq_msg_send",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg, void* s, int flags)",
+"comment" : "\n\n \n",
+"line" : 544}
+,
+{
+"name" : "zmq_msg_recv",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg, void* s, int flags)",
+"comment" : "\n\n \n",
+"line" : 551}
+,
+{
+"name" : "zmq_msg_close",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg)",
+"comment" : "\n\n \n",
+"line" : 558}
+,
+{
+"name" : "zmq_msg_move",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* dest, zmq_msg_t* src)",
+"comment" : "\n\n \n",
+"line" : 565}
+,
+{
+"name" : "zmq_msg_copy",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* dest, zmq_msg_t* src)",
+"comment" : "\n\n \n",
+"line" : 572}
+,
+{
+"name" : "zmq_msg_data",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void*(zmq_msg_t* msg)",
+"comment" : "\n\n \n",
+"line" : 579}
+,
+{
+"name" : "zmq_msg_size",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) ulong(zmq_msg_t* msg)",
+"comment" : "\n\n \n",
+"line" : 586}
+,
+{
+"name" : "zmq_msg_more",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg)",
+"comment" : "\n\n \n",
+"line" : 593}
+,
+{
+"name" : "zmq_msg_get",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg, int option)",
+"comment" : "\n\n \n",
+"line" : 600}
+,
+{
+"name" : "zmq_msg_set",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_msg_t* msg, int option, int optval)",
+"comment" : "\n\n \n",
+"line" : 607}
+,
+{
+"name" : "ZMQ_PAIR",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 634}
+,
+{
+"name" : "ZMQ_PUB",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 635}
+,
+{
+"name" : "ZMQ_SUB",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 636}
+,
+{
+"name" : "ZMQ_REQ",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 637}
+,
+{
+"name" : "ZMQ_REP",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 638}
+,
+{
+"name" : "ZMQ_DEALER",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 639}
+,
+{
+"name" : "ZMQ_ROUTER",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 640}
+,
+{
+"name" : "ZMQ_PULL",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 641}
+,
+{
+"name" : "ZMQ_PUSH",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 642}
+,
+{
+"name" : "ZMQ_XPUB",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 643}
+,
+{
+"name" : "ZMQ_XSUB",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 644}
+,
+{
+"name" : "ZMQ_XREQ",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 658}
+,
+{
+"name" : "ZMQ_XREP",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 659}
+,
+{
+"name" : "ZMQ_AFFINITY",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 703}
+,
+{
+"name" : "ZMQ_IDENTITY",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 704}
+,
+{
+"name" : "ZMQ_SUBSCRIBE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 705}
+,
+{
+"name" : "ZMQ_UNSUBSCRIBE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 706}
+,
+{
+"name" : "ZMQ_RATE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 707}
+,
+{
+"name" : "ZMQ_RECOVERY_IVL",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 708}
+,
+{
+"name" : "ZMQ_SNDBUF",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 709}
+,
+{
+"name" : "ZMQ_RCVBUF",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 710}
+,
+{
+"name" : "ZMQ_RCVMORE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 711}
+,
+{
+"name" : "ZMQ_FD",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 712}
+,
+{
+"name" : "ZMQ_EVENTS",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 713}
+,
+{
+"name" : "ZMQ_TYPE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 714}
+,
+{
+"name" : "ZMQ_LINGER",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 715}
+,
+{
+"name" : "ZMQ_RECONNECT_IVL",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 716}
+,
+{
+"name" : "ZMQ_BACKLOG",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 717}
+,
+{
+"name" : "ZMQ_RECONNECT_IVL_MAX",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 718}
+,
+{
+"name" : "ZMQ_MAXMSGSIZE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 719}
+,
+{
+"name" : "ZMQ_SNDHWM",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 720}
+,
+{
+"name" : "ZMQ_RCVHWM",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 721}
+,
+{
+"name" : "ZMQ_MULTICAST_HOPS",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 722}
+,
+{
+"name" : "ZMQ_RCVTIMEO",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 723}
+,
+{
+"name" : "ZMQ_SNDTIMEO",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 724}
+,
+{
+"name" : "ZMQ_IPV4ONLY",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 725}
+,
+{
+"name" : "ZMQ_LAST_ENDPOINT",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 726}
+,
+{
+"name" : "ZMQ_ROUTER_MANDATORY",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 727}
+,
+{
+"name" : "ZMQ_TCP_KEEPALIVE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 728}
+,
+{
+"name" : "ZMQ_TCP_KEEPALIVE_CNT",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 729}
+,
+{
+"name" : "ZMQ_TCP_KEEPALIVE_IDLE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 730}
+,
+{
+"name" : "ZMQ_TCP_KEEPALIVE_INTVL",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 731}
+,
+{
+"name" : "ZMQ_TCP_ACCEPT_FILTER",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 732}
+,
+{
+"name" : "ZMQ_DELAY_ATTACH_ON_CONNECT",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 733}
+,
+{
+"name" : "ZMQ_XPUB_VERBOSE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 734}
+,
+{
+"name" : "ZMQ_MORE",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n \n",
+"line" : 744}
+,
+{
+"name" : "ZMQ_DONTWAIT",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n \n",
+"line" : 756}
+,
+{
+"name" : "ZMQ_SNDMORE",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n \n",
+"line" : 757}
+,
+{
+"name" : "ZMQ_NOBLOCK",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 770}
+,
+{
+"name" : "ZMQ_ROUTER_BEHAVIOR",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 771}
+,
+{
+"name" : "ZMQ_EVENT_CONNECTED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 807}
+,
+{
+"name" : "ZMQ_EVENT_CONNECT_DELAYED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 808}
+,
+{
+"name" : "ZMQ_EVENT_CONNECT_RETRIED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 809}
+,
+{
+"name" : "ZMQ_EVENT_LISTENING",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 811}
+,
+{
+"name" : "ZMQ_EVENT_BIND_FAILED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 812}
+,
+{
+"name" : "ZMQ_EVENT_ACCEPTED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 814}
+,
+{
+"name" : "ZMQ_EVENT_ACCEPT_FAILED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 815}
+,
+{
+"name" : "ZMQ_EVENT_CLOSED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 817}
+,
+{
+"name" : "ZMQ_EVENT_CLOSE_FAILED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 818}
+,
+{
+"name" : "ZMQ_EVENT_DISCONNECTED",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 819}
+,
+{
+"name" : "ZMQ_EVENT_ALL",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 821}
+,
+{
+"name" : "zmq_event_t",
+"kind" : "struct",
+"protection" : "public",
+"comment" : "\n\n \n",
+"line" : 886,
+"members" : [
+{
+"name" : "event",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"line" : 887}
+,
+{
+"name" : "addr",
+"kind" : "variable",
+"protection" : "public",
+"type" : "char*",
+"line" : 889}
+,
+{
+"name" : "fd",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"line" : 890}
+,
+{
+"name" : "err",
+"kind" : "alias",
+"protection" : "public",
+"line" : 892}
+,
+{
+"name" : "interval",
+"kind" : "alias",
+"protection" : "public",
+"line" : 892}
+]
+}
+,
+{
+"name" : "zmq_socket",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) void*(void* c, int type)",
+"comment" : "\n\n \n",
+"line" : 919}
+,
+{
+"name" : "zmq_close",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s)",
+"line" : 920}
+,
+{
+"name" : "zmq_setsockopt",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, int option, const(void)* optval, ulong optvallen)",
+"line" : 921}
+,
+{
+"name" : "zmq_getsockopt",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, int option, void* optval, ulong* optvallen)",
+"line" : 922}
+,
+{
+"name" : "zmq_bind",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, const(char)* addr)",
+"line" : 923}
+,
+{
+"name" : "zmq_connect",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, const(char)* addr)",
+"line" : 924}
+,
+{
+"name" : "zmq_unbind",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, const(char)* addr)",
+"line" : 925}
+,
+{
+"name" : "zmq_disconnect",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, const(char)* addr)",
+"line" : 926}
+,
+{
+"name" : "zmq_send",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, const(void)* buf, ulong len, int flags)",
+"line" : 927}
+,
+{
+"name" : "zmq_recv",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, void* buf, ulong len, int flags)",
+"line" : 928}
+,
+{
+"name" : "zmq_socket_monitor",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, const(char)* addr, int events)",
+"line" : 929}
+,
+{
+"name" : "zmq_sendmsg",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, zmq_msg_t* msg, int flags)",
+"line" : 931}
+,
+{
+"name" : "zmq_recvmsg",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, zmq_msg_t* msg, int flags)",
+"line" : 932}
+,
+{
+"name" : "zmq_sendiov",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, iovec* iov, ulong count, int flags)",
+"comment" : "\n\n \n",
+"line" : 957}
+,
+{
+"name" : "zmq_recviov",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* s, iovec* iov, ulong* count, int flags)",
+"line" : 958}
+,
+{
+"name" : "ZMQ_POLLIN",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n\n \n",
+"line" : 975}
+,
+{
+"name" : "ZMQ_POLLOUT",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n\n \n",
+"line" : 976}
+,
+{
+"name" : "ZMQ_POLLERR",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"comment" : "\n\n\n\n \n",
+"line" : 977}
+,
+{
+"name" : "zmq_pollitem_t",
+"kind" : "struct",
+"protection" : "public",
+"comment" : "\n\n \n",
+"line" : 997,
+"members" : [
+{
+"name" : "socket",
+"kind" : "variable",
+"protection" : "public",
+"type" : "void*",
+"line" : 998}
+,
+{
+"name" : "fd",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"line" : 1004}
+,
+{
+"name" : "events",
+"kind" : "variable",
+"protection" : "public",
+"type" : "short",
+"line" : 1007}
+,
+{
+"name" : "revents",
+"kind" : "variable",
+"protection" : "public",
+"type" : "short",
+"line" : 1008}
+]
+}
+,
+{
+"name" : "zmq_poll",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(zmq_pollitem_t* items, int nitems, int timeout)",
+"comment" : "\n\n \n",
+"line" : 1017}
+,
+{
+"name" : "zmq_proxy",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(void* frontend, void* backend, void* capture)",
+"comment" : "\n\n \n",
+"line" : 1027}
+,
+{
+"name" : "ZMQ_STREAMER",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 1041}
+,
+{
+"name" : "ZMQ_FORWARDER",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 1042}
+,
+{
+"name" : "ZMQ_QUEUE",
+"kind" : "enum member",
+"protection" : "public",
+"line" : 1043}
+,
+{
+"name" : "zmq_device",
+"kind" : "function",
+"protection" : "public",
+"type" : "extern (C) int(int type, void* frontend, void* backend)",
+"comment" : "\n\n \n",
+"line" : 1053}
+]
+}
+]
