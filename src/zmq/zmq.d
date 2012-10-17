@@ -1,5 +1,5 @@
 /*
-    0MQ header translated into the D Programming Language 2.x
+    0MQ header translated into the D Programming Language
     by Christopher Nicholson-Sauls (2012).
 */
 
@@ -266,7 +266,7 @@ int zmq_term ( void* context );
 //typedef struct zmq_msg_t {unsigned char _ [32];} zmq_msg_t;
 struct zmq_msg_t {
     ubyte[32] _;
-    alias _ this;
+    //alias _ this;
 }
 
 //typedef void (zmq_free_fn) (void *data, void *hint);
@@ -566,7 +566,7 @@ ZMQ_EXPORT int zmq_socket_monitor (void *s, const char *addr, int events);
 ZMQ_EXPORT int zmq_sendmsg (void *s, zmq_msg_t *msg, int flags);
 ZMQ_EXPORT int zmq_recvmsg (void *s, zmq_msg_t *msg, int flags);
 +/
-void* zmq_socket ( void* s, int type );
+void* zmq_socket ( void* c, int type );
 int zmq_close ( void* s );
 int zmq_setsockopt ( void* s, int option, const( void )* optval, size_t optvallen );
 int zmq_getsockopt ( void* s, int option, void* optval, size_t* optvallen );

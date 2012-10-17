@@ -3,6 +3,9 @@
     by Christopher Nicholson-Sauls (2012).
 */
 
+/***************************************************************************************************
+ *
+ */
 module dzmq.utils;
 
 import  core.time   ;
@@ -13,7 +16,6 @@ import  zmq.utils   ;
  *
  */
 struct ZMQStopwatch {
-
 
     /*******************************************************************************************
      *
@@ -42,7 +44,7 @@ struct ZMQStopwatch {
      */
     @property
     Duration time () {
-        return time;
+        return span;
     }
 
 
@@ -62,3 +64,9 @@ struct ZMQStopwatch {
 /***************************************************************************************************
  *
  */
+void zmqSleep ( Duration d ) {
+    zmq_sleep( cast( int ) d.total!`seconds`() );
+}
+
+///ditto
+alias zmq_sleep zmqSleep;

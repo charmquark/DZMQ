@@ -3,9 +3,14 @@
     by Christopher Nicholson-Sauls (2012).
 */
 
+/***************************************************************************************************
+ *
+ */
 module dzmq.zmq;
 
-import  std.string  ;
+import  std.array   ,
+        std.range   ,
+        std.string  ;
 import  zmq.zmq     ;
 
 
@@ -61,9 +66,13 @@ final class ZMQContext {
         if ( handle is null ) {
             throw new ZMQException( "Failed to create context" );
         }
-        if ( a_ioThreads != ZMQ_IO_THREADS_DFLT ) {
-            ioThreads = a_ioThreads;
-        }
+        ioThreads = a_ioThreads;
+    }
+    
+    unittest {
+        auto ctx = new ZMQContext;
+        assert( ctx !is null );
+        assert( ctx.ioThreads == ZMQ_IO_THREADS_DFLT );
     }
 
 
@@ -92,9 +101,11 @@ final class ZMQContext {
     ///ditto
     @property
     int ioThreads ( int val )
+    
     in {
         assert( val > 0, "It is useless to have zero (or negative!?) io threads" );
     }
+    
     body {
         return zmq_ctx_set( handle, ZMQ_IO_THREADS, val );
     }
@@ -111,9 +122,11 @@ final class ZMQContext {
     ///ditto
     @property
     int maxSockets ( int val )
+    
     in {
         assert( val > 0, "It is useless to have a context with zero (or negative!?) max sockets" );
     }
+    
     body {
         return zmq_ctx_set( handle, ZMQ_MAX_SOCKETS, val );
     }
@@ -123,15 +136,23 @@ final class ZMQContext {
      *
      */
     ZMQPoller poller ( int size = ZMQPoller.DEFAULT_SIZE ) {
-        return new Poller( this, size );
+        return new ZMQPoller( this, size );
     }
 
 
     /*******************************************************************************************
      *
      */
-    ZMQSocket socket ( ZMQSocket.Type type ) {
-        return new ZMQSocket( handle, type );
+    ZMQSocket socket ( ZMQSocket.Type type )
+    
+    out ( result ) {
+        assert( result !is null );
+    }
+    
+    body {
+        auto sock = new ZMQSocket( handle, type );
+        sockets ~= sock;
+        return sock;
     }
 
 
@@ -152,7 +173,8 @@ final class ZMQContext {
     ////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    void* handle;
+    ZMQSocket[] sockets ;
+    void*       handle  ;
 
 
 } // end ZMQContext
@@ -211,12 +233,100 @@ final class ZMQSocket {
     }
 
 
+    /*******************************************************************************************
+     *
+     */
+    void bind ( string addr ) {
+        auto rc = zmq_bind( handle, toStringz( addr ) );
+        if ( rc != 0 ) {
+            throw new ZMQException( "Failed to bind socket to " ~ addr );
+        }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void connect ( string addr ) {
+        auto rc = zmq_connect( handle, toStringz( addr ) );
+        if ( rc != 0 ) {
+            throw new ZMQException( "Failed to connect socket to " ~ addr );
+        }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    T receive ( T ) ( int flags = 0 ) {
+        return cast( T ) _receive( flags );
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void send ( R ) ( R input, int flags = 0 )
+    
+    if ( isInputRange!R )
+    
+    body {
+        static if ( isForwardRange!R ) {
+            input = input.save;
+        }
+        _send( cast( void[] ) input.array(), flags );
+    }
+
+
     ////////////////////////////////////////////////////////////////////////////////////////////
     private:
     ////////////////////////////////////////////////////////////////////////////////////////////
 
 
     void* handle;
+
+
+    /*******************************************************************************************
+     *
+     */
+    void[] _receive ( int flags = 0 ) {
+        zmq_msg_t msg;
+        auto rc = zmq_msg_init( &msg );
+        if ( rc != 0 ) {
+            throw new ZMQException( "" );
+        }
+        
+        rc = zmq_recvmsg( handle, &msg, flags );
+        auto err = zmq_errno();
+        if ( rc < 0 ) {
+            if ( err != EAGAIN ) {
+                zmq_msg_close( &msg );
+                throw new ZMQException( "" );
+            }
+            rc = zmq_msg_close( &msg );
+            if ( rc != 0 ) {
+                throw new ZMQException( "" );
+            }
+            return null;
+        }
+       
+        auto data = zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ].dup;
+        rc = zmq_msg_close( &msg );
+        assert( rc == 0 );
+        
+        return data;
+    }
+
+    
+    /*******************************************************************************************
+     *
+     */
+    void _send ( void[] data, int flags = 0 ) {
+        auto rc = zmq_send( handle, data.ptr, data.length, flags );
+        if ( rc < 0 ) {
+            throw new ZMQException( "Failed to send" );
+        }
+    }
 
 
 } // end ZMQSocket

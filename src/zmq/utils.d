@@ -1,5 +1,5 @@
 /*
-    0MQ header translated into the D Programming Language 2.x
+    0MQ header translated into the D Programming Language
     by Christopher Nicholson-Sauls (2012).
 */
 
