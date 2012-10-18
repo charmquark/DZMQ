@@ -44,15 +44,11 @@
 module zmq.utils;
 
 
-/***************************************************************************************************
- *  Direct compiler to generate linkage with the 0MQ library.
- */
+/* Direct compiler to generate linkage with the 0MQ library. */
 pragma( lib, "zmq" );
 
 
-/***************************************************************************************************
- *  C linkage for all function prototypes.
- */
+/* C linkage for all function prototypes. */
 extern( C ):
 
 
