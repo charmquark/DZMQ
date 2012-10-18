@@ -5,7 +5,7 @@ DOPTS := -Isrc -ofdzmq -op -property -w
 MODULES := $(wildcard src/**/*.d)
 
 LBITS := $(shell getconf LONG_BIT)
-DVM := $(shell which dvm)
+DVM := $(shell which dvm 2>/dev/null)
 
 LIBS := debug release
 debug_OPTS := -debug -g
@@ -40,7 +40,7 @@ endif
 
 install_compiler:
 ifeq ("$(shell dvm list | grep "$(DC)-$(DV)")","")
-	dvm --$(LBITS) --force install $(DV)
+	dvm --$(LBITS)bit --force install $(DV)
 endif
 
 select_compiler:
