@@ -119,24 +119,25 @@ version( Windows ) {
      *  On Windows platform some of the standard POSIX errnos are not defined.
      */
     enum {
-        ENOTSUP         = ZMQ_HAUSNUMERO + 1,
-        EPROTONOSUPPORT ,
-        ENOBUFS         ,
-        ENETDOWN        ,
-        EADDRINUSE      ,
-        EADDRNOTAVAIL   ,
-        ECONNREFUSED    ,
-        EINPROGRESS     ,
-        ENOTSOCK        ,
-        EMSGSIZE        ,
-        EAFNOSUPPORT    ,
-        ENETUNREACH     ,
-        ECONNABORTED    ,
-        ECONNRESET      ,
-        ENOTCONN        ,
-        ETIMEDOUT       ,
-        EHOSTUNREACH    ,
-        ENETRESET       
+        ENOTSUP         = ZMQ_HAUSNUMERO + 1,   /++ On Windows platform some of the standard POSIX 
+                                                errnos are not defined. +/
+        EPROTONOSUPPORT ,                       /// ditto
+        ENOBUFS         ,                       /// ditto
+        ENETDOWN        ,                       /// ditto
+        EADDRINUSE      ,                       /// ditto
+        EADDRNOTAVAIL   ,                       /// ditto
+        ECONNREFUSED    ,                       /// ditto
+        EINPROGRESS     ,                       /// ditto
+        ENOTSOCK        ,                       /// ditto
+        EMSGSIZE        ,                       /// ditto
+        EAFNOSUPPORT    ,                       /// ditto
+        ENETUNREACH     ,                       /// ditto
+        ECONNABORTED    ,                       /// ditto
+        ECONNRESET      ,                       /// ditto
+        ENOTCONN        ,                       /// ditto
+        ETIMEDOUT       ,                       /// ditto
+        EHOSTUNREACH    ,                       /// ditto
+        ENETRESET       ,                       /// ditto
     }
 
 }
@@ -145,7 +146,9 @@ else version( linux ) {
     /***********************************************************************************************
      *  On Linux we extend the errnos with ENOTSUP.
      */
-    enum ENOTSUP = ZMQ_HAUSNUMERO + 1;
+    enum {
+        ENOTSUP = ZMQ_HAUSNUMERO + 1    /// On Linux we extend the errnos with ENOTSUP.
+    }
 
 }
 else {
@@ -160,10 +163,12 @@ else {
  *  Native 0MQ error codes.
  */
 
-enum    EFSM            = ZMQ_HAUSNUMERO + 51   ,
-        ENOCOMPATPROTO  = ZMQ_HAUSNUMERO + 52   ,
-        ETERM           = ZMQ_HAUSNUMERO + 53   ,
-        EMTHREAD        = ZMQ_HAUSNUMERO + 54   ;
+enum {
+    EFSM            = ZMQ_HAUSNUMERO + 51   ,   /// Native 0MQ error codes.
+    ENOCOMPATPROTO  = ZMQ_HAUSNUMERO + 52   ,   /// ditto
+    ETERM           = ZMQ_HAUSNUMERO + 53   ,   /// ditto
+    EMTHREAD        = ZMQ_HAUSNUMERO + 54   ,   /// ditto
+}
 
 
 /***************************************************************************************************
@@ -247,12 +252,10 @@ void* zmq_ctx_new ();
  *      $(LI Any blocking operations currently in progress on sockets open within context shall 
  *      return immediately with an error code of ETERM. With the exception of zmq_close(), any 
  *      further operations on sockets open within context shall fail with an error code of ETERM.)
- *
  *      $(LI After interrupting all blocking calls, zmq_ctx_destroy() shall block until the 
  *      following conditions are satisfied: 
  *          $(UL $(LI All sockets open within context have been closed with zmq_close().))
  *      )
- *
  *      $(LI For each socket within context, all messages sent by the application with zmq_send() 
  *      have either been physically transferred to a network peer, or the socket's linger period set
  *      with the ZMQ_LINGER socket option has expired.)
@@ -266,10 +269,11 @@ void* zmq_ctx_new ();
  *
  *  Returns: zero if successful; otherwise -1 and set errno to one of the values defined below.
  *
- *  Errors: 
+ *  Errors:
  *  $(DL
  *      $(DT EFAULT)    $(DD The provided context was invalid.)
- *      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if needed.)
+ *      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if 
+ *                      needed.)
  *  )
  *
  *  -----
@@ -291,6 +295,7 @@ int zmq_ctx_destroy ( void* context );
  *  value of the option_value argument.
  *
  *  The zmq_ctx_set() function accepts the following options: 
+ *
  *  $(DL
  *      $(DT ZMQ_IO_THREADS) $(DD
  *          $(B Set number of I/O threads.)
@@ -316,9 +321,7 @@ int zmq_ctx_destroy ( void* context );
  *  below.
  *
  *  Errors:
- *  $(DL
- *      $(DT EINVAL) $(DD The requested option option_name is unknown.)
- *  )
+ *  $(DL $(DT EINVAL) $(DD The requested option option_name is unknown.))
  *
  *  -----
  *  // Setting a limit on the number of sockets ////////////////////////////////////////////////////
@@ -336,12 +339,13 @@ int zmq_ctx_set ( void* context, int option_name, int option_value );
  *  The zmq_ctx_get() function shall return the option specified by the option_name argument.
  *
  *  The zmq_ctx_get() function accepts the following option names:
+ *
  *  $(DL
- *      $(DT ZMQ_IO_THREADS) $(DD
+ *      $(DT ZMQ_IO_THREADS)    $(DD
  *          $(B Get number of I/O threads.)
  *          The ZMQ_IO_THREADS argument returns the size of the ØMQ thread pool for this context.
  *      )
- *      $(DT ZMQ_MAX_SOCKETS) $(DD
+ *      $(DT ZMQ_MAX_SOCKETS)   $(DD
  *          $(B Set maximum number of sockets.)
  *          The ZMQ_MAX_SOCKETS argument returns the maximum number of sockets allowed for this 
  *          context.
@@ -356,9 +360,7 @@ int zmq_ctx_set ( void* context, int option_name, int option_value );
  *  the values defined below.
  *
  *  Errors:
- *  $(DL
- *      $(DT EINVAL) $(DD The requested option option_name is unknown.)
- *  )
+ *  $(DL $(DT EINVAL) $(DD The requested option option_name is unknown.))
  *
  *  -----
  *  // Setting a limit on the number of sockets ////////////////////////////////////////////////////
@@ -392,9 +394,7 @@ int zmq_ctx_get ( void* context, int option_name );
  *  null and set errno to one of the values defined below.
  *
  *  Errors:
- *  $(DL
- *      $(DT EINVAL) $(DD An invalid number of io_threads was requested.)
- *  )
+ *  $(DL $(DT EINVAL) $(DD An invalid number of io_threads was requested.))
  */
 
 deprecated
@@ -434,7 +434,8 @@ void* zmq_init ( int io_threads );
  *  Errors:
  *  $(DL
  *      $(DT EFAULT)    $(DD The provided context was invalid.)
- *      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if needed.)
+ *      $(DT EINTR)     $(DD Termination was interrupted by a signal. It can be restarted if 
+ *                      needed.)
  *  )
  */
 
@@ -522,9 +523,7 @@ int zmq_msg_init ( zmq_msg_t* msg );
  *  defined below.
  *
  *  Errors:
- *  $(DL
- *      $(DT ENOMEM) $(DD Insufficient storage space is available.)
- *  )
+ *  $(DL $(DT ENOMEM) $(DD Insufficient storage space is available.))
  */
 
 int zmq_msg_init_size ( zmq_msg_t* msg, size_t size );
@@ -557,9 +556,7 @@ int zmq_msg_init_size ( zmq_msg_t* msg, size_t size );
  *  defined below.
  *
  *  Errors:
- *  $(DL
- *      $(DT ENOMEM) $(DD Insufficient storage space is available.)
- *  )
+ *  $(DL $(DT ENOMEM) $(DD Insufficient storage space is available.))
  *
  *  -----
  *  // Initialising a message from a supplied buffer ///////////////////////////////////////////////
@@ -590,14 +587,14 @@ int zmq_msg_init_data ( zmq_msg_t* msg, void* data, size_t size, zmq_free_fn ffn
  *  The zmq_msg_send() function shall queue the message referenced by the msg argument to be sent to
  *  the socket referenced by the socket argument. The flags argument is a combination of the flags 
  *  defined below:
- *  $(DL
- *      $(DT ZMQ_DONTWAIT) $(DD Specifies that the operation should be performed in non-blocking 
- *      mode. If the message cannot be queued on the socket, the zmq_msg_send() function shall fail 
- *      with errno set to EAGAIN.)
  *
- *      $(DT ZMQ_SNDMORE) $(DD Specifies that the message being sent is a multi-part message, and 
- *      that further message parts are to follow. Refer to the section regarding multi-part messages
- *      below for a detailed description.)
+ *  $(DL
+ *      $(DT ZMQ_DONTWAIT)  $(DD Specifies that the operation should be performed in non-blocking 
+ *                          mode. If the message cannot be queued on the socket, the zmq_msg_send()
+ *                          function shall fail with errno set to EAGAIN.)
+ *      $(DT ZMQ_SNDMORE)   $(DD Specifies that the message being sent is a multi-part message, and
+ *                          that further message parts are to follow. Refer to the section regarding
+ *                          multi-part messages below for a detailed description.)
  *  )
  *
  *  The zmq_msg_t structure passed to zmq_msg_send() is nullified during the call. If you want to 
@@ -607,7 +604,7 @@ int zmq_msg_init_data ( zmq_msg_t* msg, void* data, size_t size, zmq_free_fn ffn
  *  transmitted to the network, only that it has been queued on the socket and ØMQ has assumed 
  *  responsibility for the message.
  *
- *  Multi-part_messages:
+ *  Multipart_messages:
  *      A ØMQ message is composed of 1 or more message parts. Each message part is an independent 
  *      zmq_msg_t in its own right. ØMQ ensures atomic delivery of messages: peers shall receive 
  *      either all message parts of a message or none at all. The total number of message parts is 
@@ -617,55 +614,52 @@ int zmq_msg_init_data ( zmq_msg_t* msg, void* data, size_t size, zmq_free_fn ffn
  *      each message part except the final one.
  *
  *  Params:
+ *      msg     = pointer to prepared message
+ *      s       = socket handle
+ *      flags   = selected flags (or 0)
  *
  *  Returns: The number of bytes in the message if successful. Otherwise it shall return -1 and set 
  *  errno to one of the values defined below.
  *
  *  Errors:
  *  $(DL
- *      $(DT EAGAIN) $(DD Non-blocking mode was requested and the message cannot be sent at the 
- *      moment.)
- *
- *      $(DT ENOTSUP) $(DD The zmq_msg_send() operation is not supported by this socket type.)
- *
- *      $(DT EFSM) $(DD The zmq_msg_send() operation cannot be performed on this socket at the 
- *      moment due to the socket not being in the appropriate state. This error may occur with 
- *      socket types that switch between several states, such as ZMQ_REP. See the messaging patterns
- *      section of zmq_socket() for more information.)
- *
- *      $(DT ETERM) $(DD The ØMQ context associated with the specified socket was terminated.)
- *
- *      $(DT ENOTSOCK) $(DD The provided socket was invalid.)
- *
- *      $(DT EINTR) $(DD The operation was interrupted by delivery of a signal before the message 
- *      was sent.)
- *
- *      $(DT EFAULT) $(DD Invalid message.)
+ *      $(DT EAGAIN)    $(DD Non-blocking mode was requested and the message cannot be sent at the 
+ *                      moment.)
+ *      $(DT ENOTSUP)   $(DD The zmq_msg_send() operation is not supported by this socket type.)
+ *      $(DT EFSM)      $(DD The zmq_msg_send() operation cannot be performed on this socket at the 
+ *                      moment due to the socket not being in the appropriate state. This error may 
+ *                      occur with socket types that switch between several states, such as ZMQ_REP.
+ *                      See the messaging patterns section of zmq_socket() for more information.)
+ *      $(DT ETERM)     $(DD The ØMQ context associated with the specified socket was terminated.)
+ *      $(DT ENOTSOCK)  $(DD The provided socket was invalid.)
+ *      $(DT EINTR)     $(DD The operation was interrupted by delivery of a signal before the 
+ *                      message was sent.)
+ *      $(DT EFAULT)    $(DD Invalid message.)
  *  )
  *
  *  -----
  *  // Filling in a message and sending it to a socket /////////////////////////////////////////////
  *
- *  /+ Create a new message, allocating 6 bytes for message content +/
+ *  // Create a new message, allocating 6 bytes for message content
  *  zmq_msg_t msg;
  *  auto rc = zmq_msg_init_size( &msg, 6 );
  *  assert( rc == 0 );
  *
- *  /+ Fill in message content with 'AAAAAA' +/
+ *  // Fill in message content with 'AAAAAA'
  *  zmq_msg_data( &msg )[ 0 .. 6 ] = 'A';
  *
- *  /+ Send the message to the socket +/
+ *  // Send the message to the socket
  *  rc = zmq_msg_send( &msg, socket, 0 );
  *  assert( rc == 6 );
  *
  *
  *  // Sending a multi-part message ////////////////////////////////////////////////////////////////
  *
- *  /+ Send a multi-part message consisting of three parts to socket +/
+ *  // Send a multi-part message consisting of three parts to socket
  *  rc = zmq_msg_send( &part1, socket, ZMQ_SNDMORE );
  *  rc = zmq_msg_send( &part2, socket, ZMQ_SNDMORE );
  *
- *  /+ Final part; no more parts to follow +/
+ *  // Final part; no more parts to follow
  *  rc = zmq_msg_send( &part3, socket, 0 );
  *  -----
  */
@@ -674,66 +668,263 @@ int zmq_msg_send ( zmq_msg_t* msg, void* s, int flags );
 
 
 /***************************************************************************************************
+ *  The zmq_msg_send() function is identical to zmq_sendmsg(3), which shall be deprecated in future 
+ *  versions. zmq_msg_send() is more consistent with other message manipulation functions.
+ *
+ *  The zmq_msg_recv() function shall receive a message part from the socket referenced by the 
+ *  socket argument and store it in the message referenced by the msg argument. Any content 
+ *  previously stored in msg shall be properly deallocated. If there are no message parts available 
+ *  on the specified socket the zmq_msg_recv() function shall block until the request can be 
+ *  satisfied. The flags argument is a combination of the flags defined below:
+ *
+ *  $(DL $(DT ZMQ_DONTWAIT) $(DD Specifies that the operation should be performed in non-blocking 
+ *  mode. If there are no messages available on the specified socket, the zmq_msg_recv() function 
+ *  shall fail with errno set to EAGAIN.))
+ *
+ *  Multipart_messages:
+ *      A ØMQ message is composed of 1 or more message parts. Each message part is an independent 
+ *      zmq_msg_t in its own right. ØMQ ensures atomic delivery of messages: peers shall receive 
+ *      either all message parts of a message or none at all. The total number of message parts is 
+ *      unlimited except by available memory.
+ *
+ *      An application that processes multi-part messages must use the ZMQ_RCVMORE zmq_getsockopt()
+ *      option after calling zmq_msg_recv() to determine if there are further parts to receive.
+ *
+ *  Params:
+ *      msg     = pointer to prepared message
+ *      s       = socket handle
+ *      flags   = selected flags (or 0)
+ *
+ *  Returns: The number of bytes in the message if successful. Otherwise it shall return -1 and set
+ *  errno to one of the values defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EAGAIN)    $(DD Non-blocking mode was requested and no messages are available at the 
+ *                      moment.)
+ *      $(DT ENOTSUP)   $(DD The zmq_msg_recv() operation is not supported by this socket type.)
+ *      $(DT EFSM)      $(DD The zmq_msg_recv() operation cannot be performed on this socket at the
+ *                      moment due to the socket not being in the appropriate state. This error may
+ *                      occur with socket types that switch between several states, such as ZMQ_REP.
+ *                      See the messaging patterns section of zmq_socket() for more information.)
+ *      $(DT ETERM)     $(DD The ØMQ context associated with the specified socket was terminated.)
+ *      $(DT ENOTSOCK)  $(DD The provided socket was invalid.)
+ *      $(DT EINTR)     $(DD The operation was interrupted by delivery of a signal before a message 
+ *                      was available.)
+ *      $(DT EFAULT)    $(DD The message passed to the function was invalid.)
+ *  )
+ *
+ *  -----
+ *  // Receiving a message from a socket ///////////////////////////////////////////////////////////
+ *
+ *  // Create an empty ØMQ message
+ *  zmq_msg_t msg;
+ *  int rc = zmq_msg_init( &msg );
+ *  assert( rc == 0 );
  *  
+ *  // Block until a message is available to be received from socket
+ *  rc = zmq_msg_recv( &msg, socket, 0 );
+ *  assert( rc != -1 );
+ *  
+ *  // Release message
+ *  zmq_msg_close( &msg );
+ *  
+ *  
+ *  // Receiving a multi-part message //////////////////////////////////////////////////////////////
+ *  long more;
+ *  size_t more_size = more.sizeof;
+ *  do {
+ *      // Create an empty ØMQ message to hold the message part
+ *      zmq_msg_t part;
+ *      auto rc = zmq_msg_init( &part );
+ *      assert( rc == 0 );
+ *      
+ *      // Block until a message is available to be received from socket
+ *      rc = zmq_msg_recv( &part, socket, 0 );
+ *      assert( rc != -1 );
+ *      
+ *      // Determine if more message parts are to follow
+ *      rc = zmq_getsockopt( socket, ZMQ_RCVMORE, &more, &more_size );
+ *      assert( rc == 0 );
+ *      zmq_msg_close( &part );
+ *      
+ *  } while ( more );
+ *  -----
  */
 
 int zmq_msg_recv ( zmq_msg_t* msg, void* s, int flags );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_close() function shall inform the ØMQ infrastructure that any resources associated 
+ *  with the message object referenced by msg are no longer required and may be released. Actual 
+ *  release of resources associated with the message object shall be postponed by ØMQ until all 
+ *  users of the message or underlying data buffer have indicated it is no longer required.
+ *
+ *  Applications should ensure that zmq_msg_close() is called once a message is no longer required,
+ *  otherwise memory leaks may occur.
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  Params:
+ *      msg = pointer to message
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL $(DT EFAULT) $(DD Invalid message.))
  */
 
 int zmq_msg_close ( zmq_msg_t* msg );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_move() function shall move the content of the message object referenced by src to 
+ *  the message object referenced by dest. No actual copying of message content is performed, dest
+ *  is simply updated to reference the new content. src becomes an empty message after calling 
+ *  zmq_msg_move(). The original content of dest, if any, shall be released.
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  Params:
+ *      dest    = pointer to destination message
+ *      src     = pointer to source message
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL $(DT EFAULT) $(DD Invalid message.))
  */
 
 int zmq_msg_move ( zmq_msg_t* dest, zmq_msg_t* src );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_copy() function shall copy the message object referenced by src to the message 
+ *  object referenced by dest. The original content of dest, if any, shall be released.
+ *
+ *  The implementation may choose not to physically copy the message content, rather to share the 
+ *  underlying buffer between src and dest. Avoid modifying message content after a message has been
+ *  copied with zmq_msg_copy(), doing so can result in undefined behaviour. If what you need is an 
+ *  actual hard copy, allocate a new message using zmq_msg_init_size() and copy the message content
+ *  using memcpy().
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  Params:
+ *      dest    = pointer to destination message
+ *      src     = pointer to source message
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL $(DT EFAULT) $(DD Invalid message.))
  */
 
 int zmq_msg_copy ( zmq_msg_t* dest, zmq_msg_t* src );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_data() function shall return a pointer to the message content of the message object
+ *  referenced by msg.
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  Params:
+ *      msg = pointer to message
+ *
+ *  Returns: A pointer to the message content.
  */
 
 void* zmq_msg_data ( zmq_msg_t* msg );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_size() function shall return the size in bytes of the content of the message object
+ *  referenced by msg.
+ *
+ *  Never access zmq_msg_t members directly, instead always use the zmq_msg family of functions.
+ *
+ *  Params:
+ *      msg = pointer to message
+ *
+ *  Returns: The size of the message content in bytes.
  */
 
 size_t zmq_msg_size ( zmq_msg_t* msg );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_more() function indicates whether this is part of a multi-part message, and there 
+ *  are further parts to receive.
+ *
+ *  Params:
+ *      msg = pointer to message
+ *
+ *  Returns: Zero if this is the final part of a multi-part message, or the only part of a 
+ *  single-part message. It shall return 1 if there are further parts to receive.
+ *
+ *  -----
+ *  // Receiving a multi-part message //////////////////////////////////////////////////////////////
+ *  zmq_msg_t part;
+ *  while ( true ) {
+ *      // Create an empty ØMQ message to hold the message part
+ *      auto rc = zmq_msg_init( &part );
+ *      assert( rc == 0 );
+ *
+ *      // Block until a message is available to be received from socket
+ *      rc = zmq_recvmsg( socket, &part, 0 );
+ *      assert( rc != -1 );
+ *      if ( zmq_msg_more( &part ) )
+ *          stderr.writeln( "more" );
+ *      else {
+ *          stderr.writeln( "end" );
+ *          break;
+ *      }
+ *      zmq_msg_close( part );
+ *  }
+ *  -----
  */
 
 int zmq_msg_more ( zmq_msg_t* msg );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_get() function shall return the value for the property specified by the property 
+ *  argument for the message pointed to by the message argument.
+ *
+ *  The following properties can be retrieved with the zmq_msg_get() function:
+ *  $(DL $(DT ZMQ_MORE) $(DD Indicates that there are more message frames to follow after the 
+ *  message.))
+ *
+ *  Params:
+ *      message     = pointer to message
+ *      property    = id of desired property
+ *
+ *  Errors:
+ *  $(DL $(DT EINVAL) $(DD The requested property is unknown.))
  */
 
-int zmq_msg_get ( zmq_msg_t* msg, int option );
+int zmq_msg_get ( zmq_msg_t* message, int property );
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_msg_set() function shall set the property specified by the property argument to the 
+ *  value of the value argument for the ØMQ message fragment pointed to by the message argument.
+ *
+ *  Currently the zmq_msg_set() function does not support any property names.
+ *
+ *  Returns: Zzero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL $(DT EINVAL) $(DD The requested property property is unknown.))
  */
 
-int zmq_msg_set ( zmq_msg_t* msg, int option, int optval );
+int zmq_msg_set ( zmq_msg_t* message, int property, int value );
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -742,162 +933,96 @@ int zmq_msg_set ( zmq_msg_t* msg, int option, int optval );
 
 
 /***************************************************************************************************
- *  
+ *  Socket types.
  */
 
-/*  Socket types.                                                             */ 
-/+
-#define ZMQ_PAIR 0
-#define ZMQ_PUB 1
-#define ZMQ_SUB 2
-#define ZMQ_REQ 3
-#define ZMQ_REP 4
-#define ZMQ_DEALER 5
-#define ZMQ_ROUTER 6
-#define ZMQ_PULL 7
-#define ZMQ_PUSH 8
-#define ZMQ_XPUB 9
-#define ZMQ_XSUB 10
-+/
 enum {
-    ZMQ_PAIR    = 0,
-    ZMQ_PUB     ,
-    ZMQ_SUB     ,
-    ZMQ_REQ     ,
-    ZMQ_REP     ,
-    ZMQ_DEALER  ,
-    ZMQ_ROUTER  ,
-    ZMQ_PULL    ,
-    ZMQ_PUSH    ,
-    ZMQ_XPUB    ,
+    ZMQ_PAIR    = 0,    /// Socket types
+    ZMQ_PUB     ,       ///ditto
+    ZMQ_SUB     ,       ///ditto
+    ZMQ_REQ     ,       ///ditto
+    ZMQ_REP     ,       ///ditto
+    ZMQ_DEALER  ,       ///ditto
+    ZMQ_ROUTER  ,       ///ditto
+    ZMQ_PULL    ,       ///ditto
+    ZMQ_PUSH    ,       ///ditto
+    ZMQ_XPUB    ,       ///ditto
     ZMQ_XSUB
 }
 
 
 /***************************************************************************************************
- *  
+ *  Deprecated aliases.
  */
 
-/*  Deprecated aliases                                                        */
-/+
-#define ZMQ_XREQ ZMQ_DEALER
-#define ZMQ_XREP ZMQ_ROUTER
-+/
 deprecated enum {
-    ZMQ_XREQ    = ZMQ_DEALER    ,
-    ZMQ_XREP    = ZMQ_ROUTER    
+    ZMQ_XREQ    = ZMQ_DEALER    ,   /// Deprecated alias to ZMQ_DEALER
+    ZMQ_XREP    = ZMQ_ROUTER    ,   /// Deprecated alias to ZMQ_ROUTER
 }
 
 
 /***************************************************************************************************
- *  
+ *  Socket options.
  */
 
-/*  Socket options.                                                           */
-/+
-#define ZMQ_AFFINITY 4
-#define ZMQ_IDENTITY 5
-#define ZMQ_SUBSCRIBE 6
-#define ZMQ_UNSUBSCRIBE 7
-#define ZMQ_RATE 8
-#define ZMQ_RECOVERY_IVL 9
-#define ZMQ_SNDBUF 11
-#define ZMQ_RCVBUF 12
-#define ZMQ_RCVMORE 13
-#define ZMQ_FD 14
-#define ZMQ_EVENTS 15
-#define ZMQ_TYPE 16
-#define ZMQ_LINGER 17
-#define ZMQ_RECONNECT_IVL 18
-#define ZMQ_BACKLOG 19
-#define ZMQ_RECONNECT_IVL_MAX 21
-#define ZMQ_MAXMSGSIZE 22
-#define ZMQ_SNDHWM 23
-#define ZMQ_RCVHWM 24
-#define ZMQ_MULTICAST_HOPS 25
-#define ZMQ_RCVTIMEO 27
-#define ZMQ_SNDTIMEO 28
-#define ZMQ_IPV4ONLY 31
-#define ZMQ_LAST_ENDPOINT 32
-#define ZMQ_ROUTER_MANDATORY 33
-#define ZMQ_TCP_KEEPALIVE 34
-#define ZMQ_TCP_KEEPALIVE_CNT 35
-#define ZMQ_TCP_KEEPALIVE_IDLE 36
-#define ZMQ_TCP_KEEPALIVE_INTVL 37
-#define ZMQ_TCP_ACCEPT_FILTER 38
-#define ZMQ_DELAY_ATTACH_ON_CONNECT 39
-#define ZMQ_XPUB_VERBOSE 40
-+/
 enum {
-    ZMQ_AFFINITY                = 4,
-    ZMQ_IDENTITY                ,
-    ZMQ_SUBSCRIBE               ,
-    ZMQ_UNSUBSCRIBE             ,
-    ZMQ_RATE                    ,
-    ZMQ_RECOVERY_IVL            ,
-    ZMQ_SNDBUF                  = 11,
-    ZMQ_RCVBUF                  ,
-    ZMQ_RCVMORE                 ,
-    ZMQ_FD                      ,
-    ZMQ_EVENTS                  ,
-    ZMQ_TYPE                    ,
-    ZMQ_LINGER                  ,
-    ZMQ_RECONNECT_IVL           ,
-    ZMQ_BACKLOG                 ,
-    ZMQ_RECONNECT_IVL_MAX       = 21,
-    ZMQ_MAXMSGSIZE              ,
-    ZMQ_SNDHWM                  ,
-    ZMQ_RCVHWM                  ,
-    ZMQ_MULTICAST_HOPS          ,
-    ZMQ_RCVTIMEO                = 27,
-    ZMQ_SNDTIMEO                ,
-    ZMQ_IPV4ONLY                = 31,
-    ZMQ_LAST_ENDPOINT           ,
-    ZMQ_ROUTER_MANDATORY        ,
-    ZMQ_TCP_KEEPALIVE           ,
-    ZMQ_TCP_KEEPALIVE_CNT       ,
-    ZMQ_TCP_KEEPALIVE_IDLE      ,
-    ZMQ_TCP_KEEPALIVE_INTVL     ,
-    ZMQ_TCP_ACCEPT_FILTER       ,
-    ZMQ_DELAY_ATTACH_ON_CONNECT ,
-    ZMQ_XPUB_VERBOSE
+    ZMQ_AFFINITY                = 4,    /// Socket options.
+    ZMQ_IDENTITY                ,       /// ditto
+    ZMQ_SUBSCRIBE               ,       /// ditto
+    ZMQ_UNSUBSCRIBE             ,       /// ditto
+    ZMQ_RATE                    ,       /// ditto
+    ZMQ_RECOVERY_IVL            ,       /// ditto
+    ZMQ_SNDBUF                  = 11,   /// ditto
+    ZMQ_RCVBUF                  ,       /// ditto
+    ZMQ_RCVMORE                 ,       /// ditto
+    ZMQ_FD                      ,       /// ditto
+    ZMQ_EVENTS                  ,       /// ditto
+    ZMQ_TYPE                    ,       /// ditto
+    ZMQ_LINGER                  ,       /// ditto
+    ZMQ_RECONNECT_IVL           ,       /// ditto
+    ZMQ_BACKLOG                 ,       /// ditto
+    ZMQ_RECONNECT_IVL_MAX       = 21,   /// ditto
+    ZMQ_MAXMSGSIZE              ,       /// ditto
+    ZMQ_SNDHWM                  ,       /// ditto
+    ZMQ_RCVHWM                  ,       /// ditto
+    ZMQ_MULTICAST_HOPS          ,       /// ditto
+    ZMQ_RCVTIMEO                = 27,   /// ditto
+    ZMQ_SNDTIMEO                ,       /// ditto
+    ZMQ_IPV4ONLY                = 31,   /// ditto
+    ZMQ_LAST_ENDPOINT           ,       /// ditto
+    ZMQ_ROUTER_MANDATORY        ,       /// ditto
+    ZMQ_TCP_KEEPALIVE           ,       /// ditto
+    ZMQ_TCP_KEEPALIVE_CNT       ,       /// ditto
+    ZMQ_TCP_KEEPALIVE_IDLE      ,       /// ditto
+    ZMQ_TCP_KEEPALIVE_INTVL     ,       /// ditto
+    ZMQ_TCP_ACCEPT_FILTER       ,       /// ditto
+    ZMQ_DELAY_ATTACH_ON_CONNECT ,       /// ditto
+    ZMQ_XPUB_VERBOSE            ,       /// ditto
 }
 
 
 /***************************************************************************************************
- *  
+ *  Message options.
  */
 
-/*  Message options                                                           */
-//#define ZMQ_MORE 1
 enum ZMQ_MORE = 1;
 
 
 /***************************************************************************************************
- *  
+ *  Send/recv options.
  */
 
-/*  Send/recv options.                                                        */
-/+
-#define ZMQ_DONTWAIT 1
-#define ZMQ_SNDMORE 2
-+/
 enum    ZMQ_DONTWAIT    = 1 ,
         ZMQ_SNDMORE     = 2 ;
 
 
 /***************************************************************************************************
- *  
+ *  Deprecated aliases.
  */
 
-/*  Deprecated aliases                                                        */
-/+
-#define ZMQ_NOBLOCK ZMQ_DONTWAIT
-#define ZMQ_ROUTER_BEHAVIOR ZMQ_ROUTER_MANDATORY
-+/
 deprecated enum {
-    ZMQ_NOBLOCK         = ZMQ_DONTWAIT          ,
-    ZMQ_ROUTER_BEHAVIOR = ZMQ_ROUTER_MANDATORY
+    ZMQ_NOBLOCK         = ZMQ_DONTWAIT          ,   /// Deprecated alias to ZMQ_DONTWAIT
+    ZMQ_ROUTER_BEHAVIOR = ZMQ_ROUTER_MANDATORY  ,   /// Deprecated alias to ZMQ_ROUTER_MANDATORY
 }
 
 
@@ -907,46 +1032,25 @@ deprecated enum {
 
 
 /***************************************************************************************************
- *  
+ *  Socket transport events (tcp and ipc only).
  */
 
-/*  Socket transport events (tcp and ipc only)                                */
-/+
-#define ZMQ_EVENT_CONNECTED 1
-#define ZMQ_EVENT_CONNECT_DELAYED 2
-#define ZMQ_EVENT_CONNECT_RETRIED 4
-
-#define ZMQ_EVENT_LISTENING 8
-#define ZMQ_EVENT_BIND_FAILED 16
-
-#define ZMQ_EVENT_ACCEPTED 32
-#define ZMQ_EVENT_ACCEPT_FAILED 64
-
-#define ZMQ_EVENT_CLOSED 128
-#define ZMQ_EVENT_CLOSE_FAILED 256
-#define ZMQ_EVENT_DISCONNECTED 512
-
-#define ZMQ_EVENT_ALL ( ZMQ_EVENT_CONNECTED | ZMQ_EVENT_CONNECT_DELAYED | \
-                        ZMQ_EVENT_CONNECT_RETRIED | ZMQ_EVENT_LISTENING | \
-                        ZMQ_EVENT_BIND_FAILED | ZMQ_EVENT_ACCEPTED | \
-                        ZMQ_EVENT_ACCEPT_FAILED | ZMQ_EVENT_CLOSED | \
-                        ZMQ_EVENT_CLOSE_FAILED | ZMQ_EVENT_DISCONNECTED )
-+/
 enum {
-    ZMQ_EVENT_CONNECTED         = 1     ,
-    ZMQ_EVENT_CONNECT_DELAYED   = 2     ,
-    ZMQ_EVENT_CONNECT_RETRIED   = 4     ,
+    ZMQ_EVENT_CONNECTED         = 1     ,   /// Socket transport events (tcp and ipc only).
+    ZMQ_EVENT_CONNECT_DELAYED   = 2     ,   /// ditto
+    ZMQ_EVENT_CONNECT_RETRIED   = 4     ,   /// ditto
     
-    ZMQ_EVENT_LISTENING         = 8     ,
-    ZMQ_EVENT_BIND_FAILED       = 16    ,
+    ZMQ_EVENT_LISTENING         = 8     ,   /// ditto
+    ZMQ_EVENT_BIND_FAILED       = 16    ,   /// ditto
     
-    ZMQ_EVENT_ACCEPTED          = 32    ,
-    ZMQ_EVENT_ACCEPT_FAILED     = 64    ,
+    ZMQ_EVENT_ACCEPTED          = 32    ,   /// ditto
+    ZMQ_EVENT_ACCEPT_FAILED     = 64    ,   /// ditto
     
-    ZMQ_EVENT_CLOSED            = 128   ,
-    ZMQ_EVENT_CLOSE_FAILED      = 256   ,
-    ZMQ_EVENT_DISCONNECTED      = 512   ,
+    ZMQ_EVENT_CLOSED            = 128   ,   /// ditto
+    ZMQ_EVENT_CLOSE_FAILED      = 256   ,   /// ditto
+    ZMQ_EVENT_DISCONNECTED      = 512   ,   /// ditto
     
+    /++ ditto +/
     ZMQ_EVENT_ALL               =   ZMQ_EVENT_CONNECTED
                                 |   ZMQ_EVENT_CONNECT_DELAYED
                                 |   ZMQ_EVENT_CONNECT_RETRIED
@@ -961,112 +1065,257 @@ enum {
 
 
 /***************************************************************************************************
- *  
+ *  Socket event data.
  */
 
-/*  Socket event data (union member per event)                                */
-/+
-typedef struct {
-    int event;
-    union {
-    struct {
-        char *addr;
-        int fd;
-    } connected;
-    struct {
-        char *addr;
-        int err;
-    } connect_delayed;
-    struct {
-        char *addr;
-        int interval;
-    } connect_retried;
-    struct {
-        char *addr;
-        int fd;
-    } listening;
-    struct {
-        char *addr;
-        int err;
-    } bind_failed;
-    struct {
-        char *addr;
-        int fd;
-    } accepted;
-    struct {
-        char *addr;
-        int err;
-    } accept_failed;
-    struct {
-        char *addr;
-        int fd;
-    } closed;
-    struct {
-        char *addr;
-        int err;
-    } close_failed;
-    struct {
-        char *addr;
-        int fd;
-    } disconnected;
-    } data;
-} zmq_event_t;
-+/
 struct zmq_event_t {
-    int event;
+
+    int event; /// Event
+    
     struct {
-        char* addr;
-        int   fd;
+        char* addr; /// Pointer to null terminated string of associated address +/
         
-        alias fd err, interval;
+        int _payload;
+        
+        /** File descriptor (used by the connected, listening, accepted, closed, and 
+        disconnected events) */
+        alias _payload fd;
+
+        /** Error (used by the connect_delayed, bind_failed, accept_failed, and close_failed
+        events) */
+        alias _payload err;
+
+        /** Used by the connect_retried event */
+        alias _payload interval;
     }
 }
 
 
 /***************************************************************************************************
- *  
+ *  The zmq_socket() function shall create a ØMQ socket within the specified context and return an 
+ *  opaque handle to the newly created socket. The type argument specifies the socket type, which 
+ *  determines the semantics of communication over the socket.
+ *
+ *  The newly created socket is initially unbound, and not associated with any endpoints. In order 
+ *  to establish a message flow a socket must first be connected to at least one endpoint with 
+ *  zmq_connect(), or at least one endpoint must be created for accepting incoming connections with 
+ *  zmq_bind().
+ *
+ *  Key_differences_to_conventional_sockets:
+ *      Generally speaking, conventional sockets present a synchronous interface to either 
+ *      connection-oriented reliable byte streams (SOCK_STREAM), or connection-less unreliable 
+ *      datagrams (SOCK_DGRAM). In comparison, ØMQ sockets present an abstraction of an asynchronous
+ *      message queue, with the exact queueing semantics depending on the socket type in use. Where
+ *      conventional sockets transfer streams of bytes or discrete datagrams, ØMQ sockets transfer
+ *      discrete messages.
+ *
+ *      ØMQ sockets being asynchronous means that the timings of the physical connection setup and 
+ *      tear down, reconnect and effective delivery are transparent to the user and organized by 
+ *      ØMQ itself. Further, messages may be queued in the event that a peer is unavailable to 
+ *      receive them.
+ *
+ *      Conventional sockets allow only strict one-to-one (two peers), many-to-one (many clients, 
+ *      one server), or in some cases one-to-many (multicast) relationships. With the exception of 
+ *      ZMQ_PAIR, ØMQ sockets may be connected to multiple endpoints using zmq_connect(), while 
+ *      simultaneously accepting incoming connections from multiple endpoints bound to the socket 
+ *      using zmq_bind(), thus allowing many-to-many relationships.
+ *
+ *  Thread_safety:
+ *      ØMQ sockets are not thread safe. Applications MUST NOT use a socket from multiple threads 
+ *      except after migrating a socket from one thread to another with a "full fence" memory 
+ *      barrier.
+ *
+ *  Detailed_information:
+ *      See more complete documentation, including full descriptions of the various socket types and
+ *      usage patterns, at $(LINK http://api.zeromq.org/3-2:zmq-socket).
+ *
+ *  Params:
+ *      c       = context handle
+ *      type    = selected socket type
+ *
+ *  Returns: An opaque handle to the newly created socket if successful. Otherwise, it shall return 
+ *  null and set errno to one of the values defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EINVAL)    $(DD The requested socket type is invalid.)
+ *      $(DT EFAULT)    $(DD The provided context is invalid.)
+ *      $(DT EMFILE)    $(DD The limit on the total number of open ØMQ sockets has been reached.)
+ *      $(DT ETERM)     $(DD The context specified was terminated.)
+ *  )
  */
 
-/+
-ZMQ_EXPORT void *zmq_socket (void *, int type);
-ZMQ_EXPORT int zmq_close (void *s);
-ZMQ_EXPORT int zmq_setsockopt (void *s, int option, const void *optval,
-    size_t optvallen); 
-ZMQ_EXPORT int zmq_getsockopt (void *s, int option, void *optval,
-    size_t *optvallen);
-ZMQ_EXPORT int zmq_bind (void *s, const char *addr);
-ZMQ_EXPORT int zmq_connect (void *s, const char *addr);
-ZMQ_EXPORT int zmq_unbind (void *s, const char *addr);
-ZMQ_EXPORT int zmq_disconnect (void *s, const char *addr);
-ZMQ_EXPORT int zmq_send (void *s, const void *buf, size_t len, int flags);
-ZMQ_EXPORT int zmq_recv (void *s, void *buf, size_t len, int flags);
-ZMQ_EXPORT int zmq_socket_monitor (void *s, const char *addr, int events);
-
-ZMQ_EXPORT int zmq_sendmsg (void *s, zmq_msg_t *msg, int flags);
-ZMQ_EXPORT int zmq_recvmsg (void *s, zmq_msg_t *msg, int flags);
-+/
 void* zmq_socket ( void* c, int type );
-int zmq_close ( void* s );
-int zmq_setsockopt ( void* s, int option, const( void )* optval, size_t optvallen );
-int zmq_getsockopt ( void* s, int option, void* optval, size_t* optvallen );
-int zmq_bind ( void* s, const( char )* addr );
-int zmq_connect ( void* s, const( char )* addr );
-int zmq_unbind ( void* s, const( char )* addr );
-int zmq_disconnect ( void* s, const( char )* addr );
-int zmq_send ( void* s, const( void )* buf, size_t len, int flags );
-int zmq_recv ( void* s, void* buf, size_t len, int flags );
-int zmq_socket_monitor ( void* s, const( char )* addr, int events );
 
-int zmq_sendmsg ( void* s, zmq_msg_t* msg, int flags );
-int zmq_recvmsg ( void* s, zmq_msg_t* msg, int flags );
+
+/***************************************************************************************************
+ *  The zmq_close() function shall destroy the socket referenced by the socket argument. Any 
+ *  outstanding messages physically received from the network but not yet received by the 
+ *  application with zmq_recv() shall be discarded. The behaviour for discarding messages sent by 
+ *  the application with zmq_send() but not yet physically transferred to the network depends on the
+ *  value of the ZMQ_LINGER socket option for the specified socket.
+ *
+ *  The default setting of ZMQ_LINGER does not discard unsent messages; this behaviour may cause the
+ *  application to block when calling zmq_term(). For details refer to zmq_setsockopt() and 
+ *  zmq_term().
+ *
+ *  Params:
+ *      s = socket handle
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL $(DT ENOTSOCK) $(DD The provided socket was invalid.))
+ */
+
+int zmq_close ( void* s );
+
+
+/***************************************************************************************************
+ *  The zmq_setsockopt() function shall set the option specified by the option_name argument to the
+ *  value pointed to by the option_value argument for the ØMQ socket pointed to by the socket 
+ *  argument. The option_len argument is the size of the option value in bytes.
+ *
+ *  For complete documentation see $(LINK http://api.zeromq.org/3-2:zmq-setsockopt).
+ *
+ *  Params:
+ *      s               = socket handle
+ *      option_name     = constant identifier of selected option
+ *      option_value    = pointer to new value for selected option
+ *      option_len      = size, in bytes, of the value
+ *
+ *  Returns: Zero if successful. Otherwise it shall return -1 and set errno to one of the values 
+ *  defined below.
+ *
+ *  Errors:
+ *  $(DL
+ *      $(DT EINVAL)    $(DD The requested option option_name is unknown, or the requested 
+ *                      option_len or option_value is invalid.)
+ *      $(DT ETERM)     $(DD The ØMQ context associated with the specified socket was terminated.)
+ *      $(DT ENOTSOCK)  $(DD The provided socket was invalid.)
+ *      $(DT EINTR)     $(DD The operation was interrupted by delivery of a signal.)
+ *  )
+ *
+ *  Caution:
+ *      All options, with the exception of ZMQ_SUBSCRIBE, ZMQ_UNSUBSCRIBE, ZMQ_LINGER and 
+ *      ZMQ_FAIL_UNROUTABLE only take effect for subsequent socket bind/connects.
+ *
+ *  -----
+ *  // Subscribing to messages on a zmq_sub socket /////////////////////////////////////////////////
+ *
+ *  // Subscribe to all messages
+ *  rc = zmq_setsockopt( socket, ZMQ_SUBSCRIBE, "", 0 );
+ *  assert( rc == 0 );
+ *
+ *  // Subscribe to messages prefixed with "ANIMALS.CATS"
+ *  rc = zmq_setsockopt( socket, ZMQ_SUBSCRIBE, "ANIMALS.CATS", 12 );
+ *
+ *
+ *  // Setting i/o thread affinity /////////////////////////////////////////////////////////////////
+ *  long affinity;
+ *
+ *  // Incoming connections on TCP port 5555 shall be handled by I/O thread 1
+ *  affinity = 1;
+ *  rc = zmq_setsockopt( socket, ZMQ_AFFINITY, &affinity, affinity.sizeof );
+ *  assert( rc );
+ *  rc = zmq_bind( socket, "tcp://lo:5555" );
+ *  assert( rc );
+ *
+ *  // Incoming connections on TCP port 5556 shall be handled by I/O thread 2
+ *  affinity = 2;
+ *  rc = zmq_setsockopt( socket, ZMQ_AFFINITY, &affinity, affinity.sizeof );
+ *  assert( rc );
+ *
+ *  rc = zmq_bind( socket, "tcp://lo:5556" );
+ *  assert( rc );
+ *  -----
+ */
+
+int zmq_setsockopt ( void* s, int option_name, const( void )* option_value, size_t option_len );
+
+
+/***************************************************************************************************
+ *  The zmq_getsockopt() function shall retrieve the value for the option specified by the 
+ *  option_name argument for the ØMQ socket pointed to by the socket argument, and store it in the 
+ *  buffer pointed to by the option_value argument. The option_len argument is the size in bytes of
+ *  the buffer pointed to by option_value; upon successful completion zmq_getsockopt() shall modify
+ *  the option_len argument to indicate the actual size of the option value stored in the buffer.
+ *
+ *  For complete documentation see $(LINK http://api.zeromq.org/3-2:zmq-getsockopt).
+ *
+ */
+
+int zmq_getsockopt ( void* s, int option_name, void* option_value, size_t* option_len );
 
 
 /***************************************************************************************************
  *  
  */
 
-/*  Experimental                                                              */
-//struct iovec;
+int zmq_bind ( void* s, const( char )* addr );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_connect ( void* s, const( char )* addr );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_unbind ( void* s, const( char )* addr );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_disconnect ( void* s, const( char )* addr );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_send ( void* s, const( void )* buf, size_t len, int flags );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_recv ( void* s, void* buf, size_t len, int flags );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_socket_monitor ( void* s, const( char )* addr, int events );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_sendmsg ( void* s, zmq_msg_t* msg, int flags );
+
+
+/***************************************************************************************************
+ *  
+ */
+
+int zmq_recvmsg ( void* s, zmq_msg_t* msg, int flags );
+
+
+/***************************************************************************************************
+ *  Experimental
+ */
+
 version( Windows ) {
     struct iovec {}
 }
@@ -1079,11 +1328,13 @@ else {
  *  
  */
 
-/+
-ZMQ_EXPORT int zmq_sendiov (void *s, struct iovec *iov, size_t count, int flags);
-ZMQ_EXPORT int zmq_recviov (void *s, struct iovec *iov, size_t *count, int flags);
-+/
 int zmq_sendiov ( void* s, iovec* iov, size_t count, int flags );
+
+
+/***************************************************************************************************
+ *  
+ */
+
 int zmq_recviov ( void* s, iovec* iov, size_t* count, int flags );
 
 
@@ -1096,11 +1347,6 @@ int zmq_recviov ( void* s, iovec* iov, size_t* count, int flags );
  *  
  */
 
-/+
-#define ZMQ_POLLIN 1
-#define ZMQ_POLLOUT 2
-#define ZMQ_POLLERR 4
-+/
 enum    ZMQ_POLLIN  = 1 ,
         ZMQ_POLLOUT = 2 ,
         ZMQ_POLLERR = 4 ;
@@ -1110,19 +1356,6 @@ enum    ZMQ_POLLIN  = 1 ,
  *  
  */
 
-/+
-typedef struct
-{
-    void *socket;
-#if defined _WIN32
-    SOCKET fd;
-#else
-    int fd;
-#endif
-    short events;
-    short revents;
-} zmq_pollitem_t;
-+/
 struct zmq_pollitem_t {
     void* socket;
     
@@ -1142,30 +1375,20 @@ struct zmq_pollitem_t {
  *  
  */
 
-//ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items, int nitems, long timeout);
 int zmq_poll ( zmq_pollitem_t* items, int nitems, int timeout );
 
 
 /***************************************************************************************************
- *  
+ *  Built-in message proxy (3-way)
  */
 
-//  Built-in message proxy (3-way)
-
-//ZMQ_EXPORT int zmq_proxy (void *frontend, void *backend, void *capture);
 int zmq_proxy ( void* frontend, void* backend, void* capture );
 
 
 /***************************************************************************************************
- *  
+ *  Deprecated aliases
  */
 
-//  Deprecated aliases
-/+
-#define ZMQ_STREAMER 1
-#define ZMQ_FORWARDER 2
-#define ZMQ_QUEUE 3
-+/
 deprecated enum {
     ZMQ_STREAMER    = 1,
     ZMQ_FORWARDER   ,
@@ -1174,10 +1397,8 @@ deprecated enum {
 
 
 /***************************************************************************************************
- *  
+ *  Deprecated method
  */
 
-//  Deprecated method
-//ZMQ_EXPORT int zmq_device (int type, void *frontend, void *backend);
 deprecated int zmq_device ( int type, void* frontend, void* backend );
 

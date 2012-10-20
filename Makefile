@@ -16,49 +16,52 @@ TEST_BIN := $(TEST_DIR)/bin
 TESTS := $(basename $(notdir $(wildcard $(TEST_DIR)/*.d)))
 
 DOC_DIR := doc
-DOC_OPTS := -c -D -Dd$(DOC_DIR) -o- -X -Xf$(DOC_DIR)/ddox.json
 
 ####################################################################################################
 
-all: setup_dvm libs tests
+_default_:
+	@echo "USAGE: make <choice>"
+	@echo "	setup_dvm	Install DVM and the $(DC)-$(DV) compiler."
+	@echo "	clean		Cleanup files created by past builds."
+	@echo "	tests		Build test programs."
+	@echo "	docs		Build documentation."
+	@echo "	libs		Build interface modules and static libraries."
 
 ####################################################################################################
 
-setup_dvm: install_dvm install_compiler select_compiler
-
-install_dvm:
+setup_dvm:
 ifeq ("$(DVM)","")
+	@echo " ** Fetching DVM $(LBITS)-bit installer."
 	ifeq $(LBITS), 64
-		wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-64
+		@wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-64
 	else
-		wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-32
+		@wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-32
 	endif
-	chmod +x dvm
-	./dvm install dvm
-	rm dvm
+	@echo " ** Installing DVM for current user."
+	@chmod +x dvm
+	@./dvm install dvm
+	@rm dvm
 endif
-
-install_compiler:
 ifeq ("$(shell dvm list | grep "$(DC)-$(DV)")","")
-	dvm --$(LBITS)bit --force install $(DV)
+	@echo " ** Fetching and installing compiler."
+	@dvm --$(LBITS)bit --force install $(DV)
 endif
-
-select_compiler:
-	dvm use 2.060
 
 ####################################################################################################
 
-libs: $(LIBS)
+libs: setup_dvm $(LIBS)
 
 $(LIBS):
-	mkdir -p $@
+	@dvm use 2.060
+	@mkdir -p $@
 	$(DC) $(DOPTS) $($(@)_OPTS) -H -Hd$@ -lib -od$@ $(MODULES)
 	
 ####################################################################################################
 
-tests: $(TESTS)
+tests: setup_dvm $(TESTS)
 
 $(TESTS):
+	@dvm use 2.060
 	$(DC) $(DOPTS) $(debug_OPTS) $(MODULES) -of$(TEST_BIN)/$@ $(TEST_DIR)/$@.d
 
 ####################################################################################################
@@ -78,4 +81,6 @@ check: tests
 ####################################################################################################
 
 docs: setup_dvm
-	$(DC) $(DOPTS) $(DOC_OPTS) $(MODULES)
+	@dvm use 2.060
+	$(DC) $(DOPTS) -c -D -Dd$(DOC_DIR) -o- -X -Xf$(DOC_DIR)/ddox.json $(MODULES)
+	@-rm -f dzmq
