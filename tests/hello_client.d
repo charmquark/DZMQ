@@ -5,21 +5,31 @@ import  std.stdio   ;
 
 
 void main () {
-    auto context = new ZMQContext;
-    
-    writeln( "Connecting to hello world server..." );
-    auto requester = context.reqSocket();
-    requester.connect( "tcp://localhost:5555" );
-    
-    foreach ( nbr ; 0 .. 10 ) {
-        writefln( "Sending request %d...", nbr );
-        requester.send( "Hello" );
+    try {
+        auto context = new ZMQContext;
         
-        auto reply = requester.receive!string();
-        writefln( "Received reply %d: [%s]", nbr, reply );
+        writeln( "Connecting to hello world server..." );
+        auto requester = context.reqSocket();
+        requester.connect( "tcp://localhost:5555" );
+        
+        foreach ( nbr ; 0 .. 10 ) {
+            writefln( "Sending request %d...", nbr );
+            requester.send( "Hello" );
+            
+            auto reply = requester.receive!string();
+            writefln( "Received reply %d: [%s]", nbr, reply );
+        }
+        
+        requester.send( "" );
+        destroy( requester );
     }
-    
-    requester.send( "" );
-    destroy( requester );
+    catch ( Throwable x ) {
+        if ( auto zx = cast( ZMQException ) x ) {
+            stderr.writeln( "zmq_errno = ", zx.code );
+        }
+        while ( x !is null ) {
+            writeln( x );
+            x = x.next;
+        }
+    }
 }
-

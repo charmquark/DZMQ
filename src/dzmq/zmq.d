@@ -8,11 +8,12 @@
  */
 module dzmq.zmq;
 
-import  std.array   ,
-        std.conv    ,
-        std.range   ,
-        std.string  ;
-import  zmq.zmq     ;
+import  std.algorithm   ,
+        std.array       ,
+        std.conv        ,
+        std.range       ,
+        std.string      ;
+import  zmq.zmq         ;
 
 
 /***************************************************************************************************
@@ -86,15 +87,14 @@ final class ZMQContext {
      *
      */
     ~this () {
-        if ( handle is null ) {
-            return;
-        }
-        foreach ( s ; sockets ) {
-            destroy( s );
-        }
-        auto rc = zmq_ctx_destroy( handle );
-        if ( rc != 0 ) {
-            throw new ZMQException( "Failed to destroy context" );
+        if ( handle !is null ) {
+            while ( sockets.length ) {
+                destroy( sockets[ 0 ] );
+            }
+            auto rc = zmq_ctx_destroy( handle );
+            if ( rc != 0 ) {
+                throw new ZMQException( "Failed to destroy context" );
+            }
         }
     }
 
@@ -190,7 +190,7 @@ final class ZMQContext {
     }
     
     body {
-        auto sock = new ZMQSocket( handle, type );
+        auto sock = new ZMQSocket( this, type );
         sockets ~= sock;
         return sock;
     }
@@ -222,8 +222,21 @@ final class ZMQContext {
     ////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    ZMQSocket[] sockets ;
     void*       handle  ;
+    ZMQSocket[] sockets ;
+
+
+    /*******************************************************************************************
+     *
+     */
+    void remove ( ZMQSocket sock ) {
+        if ( sockets.length ) {
+            auto idx = sockets.countUntil( sock );
+            if ( idx >= 0 ) {
+                sockets = sockets.remove( idx );
+            }
+        }
+    }
 
 
 } // end ZMQContext
@@ -261,8 +274,9 @@ final class ZMQSocket {
     /*******************************************************************************************
      *
      */
-    private this ( void* contextHandle, Type a_type ) {
-        handle = zmq_socket( contextHandle, a_type );
+    private this ( ZMQContext a_context, Type a_type ) {
+        context = a_context;
+        handle = zmq_socket( context.handle, a_type );
         if ( handle is null ) {
             throw new ZMQException( "Failed to create socket" );
         }
@@ -273,12 +287,7 @@ final class ZMQSocket {
      *
      */
     ~this () {
-        if ( handle !is null ) {
-            auto rc = zmq_close( handle );
-            if ( rc != 0 ) {
-                throw new ZMQException( "Failed to close socket" );
-            }
-        }
+        close();
     }
 
 
@@ -305,6 +314,25 @@ final class ZMQSocket {
         if ( rc != 0 ) {
             throw new ZMQException( "Failed to bind socket to " ~ addr );
         }
+        bindings ~= addr;
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void close () {
+        if ( context !is null ) {
+            context.remove( this );
+        }
+        if ( handle !is null ) {
+            unbindAll();
+            disconnectAll();
+            auto rc = zmq_close( handle );
+            if ( rc != 0 ) {
+                throw new ZMQException( "Failed to close socket" );
+            }
+        }
     }
 
 
@@ -315,6 +343,34 @@ final class ZMQSocket {
         auto rc = zmq_connect( handle, toStringz( addr ) );
         if ( rc != 0 ) {
             throw new ZMQException( "Failed to connect socket to " ~ addr );
+        }
+        connections ~= addr;
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void disconnect ( string addr ) {
+        if ( connections.length ) {
+            auto idx = connections.countUntil( addr );
+            if ( idx >= 0 ) {
+                auto rc = zmq_disconnect( handle, toStringz( addr ) );
+                if ( rc != 0 ) {
+                    throw new ZMQException( "Failed to disconnect socket from " ~ addr );
+                }
+                connections = connections.remove( idx );
+            }
+        }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void disconnectAll () {
+        while ( connections.length ) {
+            disconnect( connections[ 0 ] );
         }
     }
 
@@ -342,12 +398,42 @@ final class ZMQSocket {
     }
 
 
+    /*******************************************************************************************
+     *
+     */
+    void unbind ( string addr ) {
+        if ( bindings.length ) {
+            auto idx = bindings.countUntil( addr );
+            if ( idx >= 0 ) {
+                auto rc = zmq_unbind( handle, toStringz( addr ) );
+                if ( rc != 0 ) {
+                    throw new ZMQException( "Failed to unbind socket from " ~ addr );
+                }
+                bindings = bindings.remove( idx );
+            }
+        }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void unbindAll () {
+        while ( bindings.length ) {
+            unbind( bindings[ 0 ] );
+        }
+    }
+
+
     ////////////////////////////////////////////////////////////////////////////////////////////
     private:
     ////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    void* handle;
+    string[]    bindings    ;
+    string[]    connections ;
+    ZMQContext  context     ;
+    void*       handle      ;
 
 
     /*******************************************************************************************

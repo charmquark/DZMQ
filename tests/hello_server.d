@@ -7,23 +7,34 @@ import  std.stdio   ;
 
 
 void main () {
-    auto context    = new ZMQContext        ;
-    auto responder  = context.repSocket()   ;
-    
-    responder.bind( "tcp://*:5555" );
-    
-    while ( true ) {
-        auto request = responder.receive!string();
-        writefln( "Received request: [%s]", request );
+    try {
+        auto context    = new ZMQContext        ;
+        auto responder  = context.repSocket()   ;
         
-        if ( request.length == 0 ) {
-            break;
+        responder.bind( "tcp://*:5555" );
+        
+        while ( true ) {
+            auto request = responder.receive!string();
+            writefln( "Received request: [%s]", request );
+            
+            if ( request.length == 0 ) {
+                break;
+            }
+            
+            Thread.sleep( dur!`seconds`( 1 ) );
+            responder.send( "World" );
         }
         
-        Thread.sleep( dur!`seconds`( 1 ) );
-        responder.send( "World" );
+        destroy( responder );
     }
-    
-    destroy( responder );
+    catch ( Throwable x ) {
+        if ( auto zx = cast( ZMQException ) x ) {
+            stderr.writeln( "zmq_errno = ", zx.code );
+        }
+        while ( x !is null ) {
+            writeln( x );
+            x = x.next;
+        }
+    }
 }
 
