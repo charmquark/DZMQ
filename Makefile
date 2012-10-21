@@ -52,7 +52,7 @@ endif
 libs: setup_dvm $(LIBS)
 
 $(LIBS):
-	@dvm use 2.060
+	@dvm use $(DV)
 	@mkdir -p $@
 	$(DC) $(DOPTS) $($(@)_OPTS) -H -Hd$@ -lib -od$@ $(MODULES)
 	
@@ -61,7 +61,7 @@ $(LIBS):
 tests: setup_dvm $(TESTS)
 
 $(TESTS):
-	@dvm use 2.060
+	@dvm use $(DV)
 	$(DC) $(DOPTS) $(debug_OPTS) $(MODULES) -of$(TEST_BIN)/$@ $(TEST_DIR)/$@.d
 
 ####################################################################################################
@@ -81,6 +81,6 @@ check: tests
 ####################################################################################################
 
 docs: setup_dvm
-	@dvm use 2.060
+	@dvm use $(DV)
 	$(DC) $(DOPTS) -c -D -Dd$(DOC_DIR) -o- -X -Xf$(DOC_DIR)/ddox.json $(MODULES)
 	@-rm -f dzmq
