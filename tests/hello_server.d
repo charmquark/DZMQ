@@ -18,6 +18,7 @@ void main () {
             writefln( "Received request: [%s]", request );
             
             if ( request.length == 0 ) {
+                responder.send( "" );
                 break;
             }
             
@@ -28,13 +29,9 @@ void main () {
         destroy( responder );
     }
     catch ( Throwable x ) {
-        if ( auto zx = cast( ZMQException ) x ) {
-            stderr.writeln( "zmq_errno = ", zx.code );
-        }
         while ( x !is null ) {
             writeln( x );
             x = x.next;
         }
     }
 }
-

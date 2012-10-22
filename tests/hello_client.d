@@ -12,7 +12,7 @@ void main () {
         auto requester = context.reqSocket();
         requester.connect( "tcp://localhost:5555" );
         
-        foreach ( nbr ; 0 .. 10 ) {
+        foreach ( nbr ; 0 .. 3 ) {
             writefln( "Sending request %d...", nbr );
             requester.send( "Hello" );
             
@@ -20,7 +20,10 @@ void main () {
             writefln( "Received reply %d: [%s]", nbr, reply );
         }
         
+        writeln( "Sending empty ('quit') request." );
         requester.send( "" );
+        auto reply = requester.receive!string();
+        writefln( "Received reply: [%s]", reply );
         destroy( requester );
     }
     catch ( Throwable x ) {
