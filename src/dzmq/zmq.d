@@ -95,6 +95,7 @@ final class ZMQContext {
             if ( rc != 0 ) {
                 throw new ZMQException( "Failed to destroy context" );
             }
+            handle = null;
         }
     }
 
@@ -187,11 +188,11 @@ final class ZMQContext {
     
     out ( result ) {
         assert( result !is null );
+        assert( sockets[ $ - 1 ] is result );
     }
     
     body {
         auto sock = new ZMQSocket( this, type );
-        sockets ~= sock;
         return sock;
     }
 
@@ -224,6 +225,21 @@ final class ZMQContext {
 
     void*       handle  ;
     ZMQSocket[] sockets ;
+
+
+    /*******************************************************************************************
+     *
+     */
+    void add ( ZMQSocket sock )
+    
+    out {
+        assert( sockets.length );
+        assert( sockets[ $ - 1 ] == sock );
+    }
+    
+    body {
+        sockets ~= sock;
+    }
 
 
     /*******************************************************************************************
@@ -274,12 +290,8 @@ final class ZMQSocket {
     /*******************************************************************************************
      *
      */
-    private this ( ZMQContext a_context, Type a_type ) {
-        context = a_context;
-        handle = zmq_socket( context.handle, a_type );
-        if ( handle is null ) {
-            throw new ZMQException( "Failed to create socket" );
-        }
+    this ( ZMQContext a_context, Type a_type ) {
+        open( a_context, a_type );
     }
 
 
@@ -296,6 +308,7 @@ final class ZMQSocket {
      */
     @property
     Type type () {
+        enforceHandle( "Tried to get type of a closed socket" );
         int optval;
         size_t sz = optval.sizeof;
         auto rc = zmq_getsockopt( handle, ZMQ_TYPE, &optval, &sz );
@@ -310,6 +323,7 @@ final class ZMQSocket {
      *
      */
     void bind ( string addr ) {
+        enforceHandle( "Tried to bind a closed socket" );
         auto rc = zmq_bind( handle, toStringz( addr ) );
         if ( rc != 0 ) {
             throw new ZMQException( "Failed to bind socket to " ~ addr );
@@ -324,6 +338,7 @@ final class ZMQSocket {
     void close () {
         if ( context !is null ) {
             context.remove( this );
+            context = null;
         }
         if ( handle !is null ) {
             unbindAll();
@@ -332,6 +347,7 @@ final class ZMQSocket {
             if ( rc != 0 ) {
                 throw new ZMQException( "Failed to close socket" );
             }
+            handle = null;
         }
     }
 
@@ -340,6 +356,7 @@ final class ZMQSocket {
      *
      */
     void connect ( string addr ) {
+        enforceHandle( "Tried to connect a closed socket" );
         auto rc = zmq_connect( handle, toStringz( addr ) );
         if ( rc != 0 ) {
             throw new ZMQException( "Failed to connect socket to " ~ addr );
@@ -352,6 +369,7 @@ final class ZMQSocket {
      *
      */
     void disconnect ( string addr ) {
+        enforceHandle( "Tried to disconnect a closed socket" );
         if ( connections.length ) {
             auto idx = connections.countUntil( addr );
             if ( idx >= 0 ) {
@@ -378,8 +396,29 @@ final class ZMQSocket {
     /*******************************************************************************************
      *
      */
+    void open ( ZMQContext a_context, Type a_type ) {
+        if ( handle !is null ) {
+            throw new ZMQException( 0, "Tried to open an already opened socket instance" );
+        }
+        context = a_context;
+        handle = zmq_socket( context.handle, a_type );
+        if ( handle is null ) {
+            throw new ZMQException( "Failed to create socket" );
+        }
+        context.add( this );
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
     T receive ( T ) ( int flags = 0 ) {
-        return cast( T ) _receive( flags );
+        enforceHandle( "Tried to receive on a closed socket" );
+        void[] data = null;
+        while ( data == null ) {
+            data = _receive( flags );
+        }
+        return cast( T ) data;
     }
 
 
@@ -391,6 +430,7 @@ final class ZMQSocket {
     if ( isInputRange!R )
     
     body {
+        enforceHandle( "Tried to send on a closed socket" );
         static if ( isForwardRange!R ) {
             input = input.save;
         }
@@ -402,6 +442,7 @@ final class ZMQSocket {
      *
      */
     void unbind ( string addr ) {
+        enforceHandle( "Tried to unbind a closed socket" );
         if ( bindings.length ) {
             auto idx = bindings.countUntil( addr );
             if ( idx >= 0 ) {
@@ -422,6 +463,18 @@ final class ZMQSocket {
         while ( bindings.length ) {
             unbind( bindings[ 0 ] );
         }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void opDispatch ( string Sym ) ( ZMQContext a_context )
+    
+    if ( Sym.length > 4 && Sym[ 0 .. 4 ] == "open" )
+    
+    body {
+        open( a_context, mixin( `Type.` ~ Sym[ 4 .. $ ] ) );
     }
 
 
@@ -470,6 +523,16 @@ final class ZMQSocket {
         auto rc = zmq_send( handle, data.ptr, data.length, flags );
         if ( rc < 0 ) {
             throw new ZMQException( "Failed to send" );
+        }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    void enforceHandle ( lazy string msg ) {
+        if ( handle is null ) {
+            throw new ZMQException( 0, msg() );
         }
     }
 
