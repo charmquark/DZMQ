@@ -1,7 +1,7 @@
 DC := dmd
 DV := 2.060
 
-DOPTS := -Isrc -ofdzmq -op -property -w
+DOPTS := -Isrc -op -property -w
 MODULES := $(wildcard src/**/*.d)
 
 LBITS := $(shell getconf LONG_BIT)
@@ -54,7 +54,7 @@ libs: setup_dvm $(LIBS)
 $(LIBS):
 	@dvm use $(DV)
 	@mkdir -p $@
-	$(DC) $(DOPTS) $($(@)_OPTS) -H -Hd$@ -lib -od$@ $(MODULES)
+	$(DC) $(DOPTS) $($(@)_OPTS) -H -Hd$@ -lib -od$@ -ofdzmq $(MODULES)
 	
 ####################################################################################################
 
@@ -83,4 +83,3 @@ check: tests
 docs: setup_dvm
 	@dvm use $(DV)
 	$(DC) $(DOPTS) -c -D -Dd$(DOC_DIR) -o- -X -Xf$(DOC_DIR)/ddox.json $(MODULES)
-	@-rm -f dzmq
