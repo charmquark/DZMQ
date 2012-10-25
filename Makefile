@@ -31,20 +31,20 @@ _default_:
 
 setup_dvm:
 ifeq ("$(DVM)","")
-	@echo " ** Fetching DVM $(LBITS)-bit installer."
-	ifeq $(LBITS), 64
-		@wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-64
-	else
-		@wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-32
-	endif
-	@echo " ** Installing DVM for current user."
-	@chmod +x dvm
-	@./dvm install dvm
-	@rm dvm
+@echo " ** Fetching DVM $(LBITS)-bit installer."
+ifeq $(LBITS), 64
+@wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-64
+else
+@wget -O dvm https://bitbucket.org/doob/dvm/downloads/dvm-0.4.0-linux-32
+endif
+@echo " ** Installing DVM for current user."
+@chmod +x dvm
+@./dvm install dvm
+@rm dvm
 endif
 ifeq ("$(shell dvm list | grep "$(DC)-$(DV)")","")
-	@echo " ** Fetching and installing compiler."
-	@dvm --$(LBITS)bit --force install $(DV)
+@echo " ** Fetching and installing compiler."
+@dvm --$(LBITS)bit --force install $(DV)
 endif
 
 ####################################################################################################
