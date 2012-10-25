@@ -6,6 +6,7 @@
 /***************************************************************************************************
  *
  */
+
 module dzmq.zmq;
 
 import  std.algorithm   ,
@@ -20,6 +21,7 @@ import  zmq.zmq         ;
 /***************************************************************************************************
  *
  */
+
 struct ZMQVersion { static:
     enum    Major   = ZMQ_VERSION_MAJOR ,
             Minor   = ZMQ_VERSION_MINOR ,
@@ -32,6 +34,7 @@ struct ZMQVersion { static:
 /***************************************************************************************************
  *
  */
+
 class ZMQException : Exception {
 
 
@@ -49,6 +52,7 @@ class ZMQException : Exception {
         super( to!string( zmq_strerror( code ) ) ~ " -- " ~ msg, file, line, next );
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ///ditto
     this ( string msg, string file = null, size_t line = 0, Throwable next = null ) {
         this( zmq_errno(), msg, file, line, next );
@@ -61,12 +65,14 @@ class ZMQException : Exception {
 /***************************************************************************************************
  *
  */
+
 final shared class ZMQContextImpl {
 
 
     /*******************************************************************************************
      *
      */
+    
     this ( int a_ioThreads = ZMQ_IO_THREADS_DFLT ) {
         handle = cast( shared ) zmq_ctx_new();
         if ( handle is null ) {
@@ -87,6 +93,7 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     ~this () {
         if ( handle !is null ) {
             while ( sockets.length ) {
@@ -104,12 +111,15 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     @property
     int ioThreads () {
         return zmq_ctx_get( cast( void* ) handle, ZMQ_IO_THREADS );
     }
     
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ///ditto
+    
     @property
     int ioThreads ( int val )
     
@@ -136,12 +146,15 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     @property
     int maxSockets () {
         return zmq_ctx_get( cast( void* ) handle, ZMQ_MAX_SOCKETS );
     }
     
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ///ditto
+    
     @property
     int maxSockets ( int val )
     
@@ -168,6 +181,7 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     ZMQPoller poller ( int size = ZMQPoller.DEFAULT_SIZE ) {
         return new ZMQPoller( this, size );
     }
@@ -185,6 +199,7 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     ZMQSocket socket ( ZMQSocket.Type type )
     
     out ( result ) {
@@ -209,6 +224,7 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     ZMQSocket opDispatch ( string Sym ) ()
     
     if ( Sym.length > 6 && Sym[ $ - 6 .. $ ] == "Socket" )
@@ -230,6 +246,7 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     void add ( ZMQSocket sock )
     
     out {
@@ -245,6 +262,7 @@ final shared class ZMQContextImpl {
     /*******************************************************************************************
      *
      */
+    
     void remove ( ZMQSocket sock ) {
         if ( sockets.length ) {
             auto idx = sockets.countUntil( sock );
@@ -257,8 +275,9 @@ final shared class ZMQContextImpl {
 
 } // end ZMQContext
 
-
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 /// ditto
+
 alias shared( ZMQContextImpl ) ZMQContext;
 
 
@@ -271,6 +290,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     static enum Type {
         Pair    = ZMQ_PAIR,
         Pub     ,
@@ -294,6 +314,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     this ( ZMQContext a_context, Type a_type ) {
         open( a_context, a_type );
     }
@@ -302,6 +323,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     ~this () {
         close();
     }
@@ -310,6 +332,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     @property
     Type type () {
         enforceHandle( "Tried to get type of a closed socket" );
@@ -326,6 +349,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void bind ( string addr ) {
         enforceHandle( "Tried to bind a closed socket" );
         auto rc = zmq_bind( cast( void* ) handle, toStringz( addr ) );
@@ -339,6 +363,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void close () {
         if ( handle !is null ) {
             //unbindAll();
@@ -359,6 +384,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void connect ( string addr ) {
         enforceHandle( "Tried to connect a closed socket" );
         auto rc = zmq_connect( cast( void* ) handle, toStringz( addr ) );
@@ -372,6 +398,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void disconnect ( string addr ) {
         enforceHandle( "Tried to disconnect a closed socket" );
         if ( connections.length ) {
@@ -398,6 +425,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void disconnectAll () {
         while ( connections.length ) {
             disconnect( connections[ 0 ] );
@@ -408,6 +436,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void open ( ZMQContext a_context, Type a_type ) {
         if ( handle !is null ) {
             throw new ZMQException( 0, "Tried to open an already opened socket instance" );
@@ -424,20 +453,54 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
-    T receive ( T ) ( int flags = 0 ) {
-        enforceHandle( "Tried to receive on a closed socket" );
-        bool repeat = true;
-        void[] data;
-        while ( repeat ) {
-            data = _receive( flags, repeat );
+    
+    T receive ( T ) ( int flags = 0 )
+    
+    if ( isDynamicArray!T )
+    
+    body {
+        return cast( T ) _receive( flags );
+    }
+    
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ///ditto
+    
+    T receive ( T ) ( int flags = 0 )
+    
+    if ( isStaticArray!T )
+    
+    body {
+        alias ElementType!T E;
+        
+        T result;
+        auto data = _receive( flags );
+        if ( data.length != ( result.length * E.sizeof ) ) {
+            throw new ZMQException( 0, "Data received is the wrong length for " ~ T.stringof );
         }
-        return cast( T ) data;
+        result[] = cast( E[] ) data;
+        return result;
+    }
+    
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ///ditto
+    
+    T receive ( T ) ( int flags = 0 )
+    
+    if ( isScalarType!T )
+    
+    body {
+        auto data = _receive( flags );
+        if ( data.length != T.sizeof ) {
+            throw new ZMQException( 0, "Data received is the wrong length for " ~ T.stringof );
+        }
+        return *( cast( T* ) data.ptr );
     }
 
 
     /*******************************************************************************************
      *
      */
+    
     void send ( R ) ( R input, int flags = 0 )
     
     if ( isInputRange!R )
@@ -454,6 +517,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void unbind ( string addr ) {
         enforceHandle( "Tried to unbind a closed socket" );
         if ( bindings.length ) {
@@ -480,6 +544,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void unbindAll () {
         while ( bindings.length ) {
             unbind( bindings[ 0 ] );
@@ -490,6 +555,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void opDispatch ( string Sym ) ( ZMQContext a_context )
     
     if ( Sym.length > 4 && Sym[ 0 .. 4 ] == "open" )
@@ -513,26 +579,33 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
-    void[] _receive ( int flags = 0, out bool repeat = false ) {
+    
+    void[] _receive ( int flags = 0 ) {
+        enforceHandle( "Tried to receive on a closed socket" );
         zmq_msg_t msg;
-        auto rc = zmq_msg_init( &msg );
-        if ( rc != 0 ) {
-            throw new ZMQException( "Failed to initialize message" );
-        }
-        scope( exit ) {
-            rc = zmq_msg_close( &msg );
+        
+        void _close () {
+            auto rc = zmq_msg_close( &msg );
             if ( rc != 0 ) {
                 throw new ZMQException( "Failed to close message" );
             }
         }
         
+    L_top:
+        auto rc = zmq_msg_init( &msg );
+        if ( rc != 0 ) {
+            throw new ZMQException( "Failed to initialize message" );
+        }
+        scope( exit ) _close();
+        
         rc = zmq_recvmsg( cast( void* ) handle, &msg, flags );
         if ( rc < 0 ) {
-            if ( zmq_errno() == EAGAIN ) {
-                repeat = true;
-                return null;
+            auto err = zmq_errno();
+            if ( err == EAGAIN ) {
+                _close();
+                goto L_top;
             }
-            throw new ZMQException( "Failed to receive message" );
+            throw new ZMQException( err, "Failed to receive message" );
         }
         return zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ].dup;
     }
@@ -541,6 +614,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void _send ( void[] data, int flags = 0 ) {
         auto rc = zmq_send( cast( void* ) handle, data.ptr, data.length, flags );
         if ( rc < 0 ) {
@@ -552,6 +626,7 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+    
     void enforceHandle ( lazy string msg ) {
         if ( handle is null ) {
             throw new ZMQException( 0, msg() );
@@ -561,26 +636,31 @@ final shared class ZMQSocketImpl {
 
 } // end ZMQSocket
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ///ditto
+
 alias shared( ZMQSocketImpl ) ZMQSocket;
 
 
 /***************************************************************************************************
  *
  */
-final shared class ZMQPollerImpl {
+
+ final shared class ZMQPollerImpl {
 
 
     /*******************************************************************************************
      *
      */
+    
     enum DEFAULT_SIZE = 32;
 
 
     /*******************************************************************************************
      *
      */
-    private this ( ZMQContext a_context, int a_size = DEFAULT_SIZE ) {
+    
+    this ( ZMQContext a_context, int a_size = DEFAULT_SIZE ) {
         context = a_context;
         size    = a_size;
     }
@@ -597,6 +677,8 @@ final shared class ZMQPollerImpl {
 
 } // end ZMQPoller
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ///ditto
+
 alias shared( ZMQPollerImpl ) ZMQPoller;
 

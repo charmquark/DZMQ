@@ -47,6 +47,8 @@ void server ( Tid parent, ZMQContext context, string addr ) {
         Thread.sleep( dur!`seconds`( 1 ) );
         responder.send( "World" );
     }
+    
+    writeln( "[server] Stopping" );
 }
 
 
@@ -66,5 +68,7 @@ void client ( Tid parent, ZMQContext context, string addr ) {
     
     writeln( "[client] Sending empty ('quit') request." );
     requester.send( "" );
+    
+    writeln( "[client] Stopping" );
 }
 
