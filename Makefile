@@ -2,7 +2,7 @@ DC := dmd
 DV := 2.060
 
 DOPTS := -Isrc -op -property -w
-MODULES := $(wildcard src/**/*.d)
+MODULES := $(wildcard src/dzmq/*.d src/dzmq/c/*.d)
 
 LBITS := $(shell getconf LONG_BIT)
 DVM := $(shell which dvm 2>/dev/null)

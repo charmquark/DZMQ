@@ -45,7 +45,7 @@
  *
  */
 
-module zmq.zmq;
+module dzmq.c.zmq;
 
 version( Windows ) {
     import std.c.windows.winsock;

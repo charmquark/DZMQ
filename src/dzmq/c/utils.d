@@ -41,14 +41,15 @@
  *  Version:    0.1a
  *
  */
-module zmq.utils;
+
+module dzmq.c.utils;
 
 
-/* Direct compiler to generate linkage with the 0MQ library. */
+// Direct compiler to generate linkage with the 0MQ library.
 pragma( lib, "zmq" );
 
 
-/* C linkage for all function prototypes. */
+// C linkage for all function prototypes.
 extern( C ):
 
 
@@ -57,6 +58,7 @@ extern( C ):
  *
  *  Returns: stopwatch resource handle; handle with care.
  */
+
 void* zmq_stopwatch_start ();
 
 
@@ -67,6 +69,7 @@ void* zmq_stopwatch_start ();
  *      watch_  = stopwatch resource handle (created with zmq_stopwatch_start)
  *  Returns: the number of microseconds elapsed since the stopwatch was started.
  */
+
 uint zmq_stopwatch_stop ( void* watch_ );
 
 
@@ -76,4 +79,6 @@ uint zmq_stopwatch_stop ( void* watch_ );
  *  Params:
  *      seconds_    = the number of seconds to sleep
  */
+
 void zmq_sleep ( int seconds_ );
+

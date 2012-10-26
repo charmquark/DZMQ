@@ -15,7 +15,7 @@ import  std.algorithm   ,
         std.range       ,
         std.string      ,
         std.traits      ;
-import  zmq.zmq         ;
+import  dzmq.c.zmq      ;
 
 
 /***************************************************************************************************

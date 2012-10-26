@@ -32,9 +32,9 @@ version( DZMQ_UTILS ) {
 }
 else {
     
-    import  dzmq.zmq    ;
-    import  std.stdio   ;
-    import  zmq.utils   ;
+    import  dzmq.zmq        ;
+    import  std.stdio       ;
+    import  dzmq.c.utils    ;
 
     void main () {
         writeln( "0MQ version ", ZMQVersion.String );

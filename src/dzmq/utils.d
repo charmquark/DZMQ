@@ -8,8 +8,8 @@
  */
 module dzmq.utils;
 
-import  core.time   ;
-import  zmq.utils   ;
+import  core.time       ;
+import  dzmq.c.utils    ;
 
 
 /***************************************************************************************************

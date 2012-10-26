@@ -1,8 +1,8 @@
 module toy;
 
-import  std.stdio   ;
-import  zmq.utils   ,
-        zmq.zmq     ;
+import  std.stdio       ;
+import  dzmq.c.utils    ,
+        dzmq.c.zmq      ;
 
 void main () {
     writefln( "0MQ version %s.%s.%s", ZMQ_VERSION_MAJOR, ZMQ_VERSION_MINOR, ZMQ_VERSION_PATCH );
