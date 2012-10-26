@@ -91,10 +91,8 @@ final shared class ZMQContextImpl {
             while ( sockets.length ) {
                 destroy( sockets[ 0 ] );
             }
-            auto rc = zmq_ctx_destroy( cast( void* ) handle );
-            if ( rc != 0 ) {
-                throw new ZMQException( "Failed to destroy context" );
-            }
+            zmq_ctx_destroy( chandle ) 
+                .enforce0( "Failed to destroy context" );
             handle = null;
         }
     }
@@ -106,7 +104,7 @@ final shared class ZMQContextImpl {
     
     @property
     int ioThreads () {
-        return zmq_ctx_get( cast( void* ) handle, ZMQ_IO_THREADS );
+        return zmq_ctx_get( chandle, ZMQ_IO_THREADS );
     }
     
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -120,7 +118,7 @@ final shared class ZMQContextImpl {
     }
     
     body {
-        return zmq_ctx_set( cast( void* ) handle, ZMQ_IO_THREADS, val );
+        return zmq_ctx_set( chandle, ZMQ_IO_THREADS, val );
     }
 
 
@@ -130,7 +128,7 @@ final shared class ZMQContextImpl {
     
     @property
     int maxSockets () {
-        return zmq_ctx_get( cast( void* ) handle, ZMQ_MAX_SOCKETS );
+        return zmq_ctx_get( chandle, ZMQ_MAX_SOCKETS );
     }
     
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -144,7 +142,7 @@ final shared class ZMQContextImpl {
     }
     
     body {
-        return zmq_ctx_set( cast( void* ) handle, ZMQ_MAX_SOCKETS, val );
+        return zmq_ctx_set( chandle, ZMQ_MAX_SOCKETS, val );
     }
 
 
@@ -193,6 +191,16 @@ final shared class ZMQContextImpl {
 
     void*       handle  ;
     ZMQSocket[] sockets ;
+
+
+    /*******************************************************************************************
+     *
+     */
+    
+    @property
+    void* chandle () {
+        return cast( void* ) handle;
+    }
 
 
     /*******************************************************************************************
@@ -330,10 +338,8 @@ final shared class ZMQSocketImpl {
         enforceHandle( "Tried to get type of a closed socket" );
         int optval;
         size_t sz = optval.sizeof;
-        auto rc = zmq_getsockopt( cast( void* ) handle, ZMQ_TYPE, &optval, &sz );
-        if ( rc != 0 ) {
-            throw new ZMQException( "Failed to get socket option value for ZMQ_TYPE" );
-        }
+        zmq_getsockopt( chandle, ZMQ_TYPE, &optval, &sz )
+            .enforce0( "Failed to get socket option value for ZMQ_TYPE" );
         return cast( Type ) optval;
     }
 
@@ -344,10 +350,8 @@ final shared class ZMQSocketImpl {
     
     void bind ( string addr ) {
         enforceHandle( "Tried to bind a closed socket" );
-        auto rc = zmq_bind( cast( void* ) handle, toStringz( addr ) );
-        if ( rc != 0 ) {
-            throw new ZMQException( "Failed to bind socket to " ~ addr );
-        }
+        zmq_bind( chandle, toStringz( addr ) )
+            .enforce0( "Failed to bind socket to " ~ addr );
         bindings ~= addr;
     }
 
@@ -360,10 +364,8 @@ final shared class ZMQSocketImpl {
         if ( handle !is null ) {
             //unbindAll();
             //disconnectAll();
-            auto rc = zmq_close( cast( void* ) handle );
-            if ( rc != 0 ) {
-                throw new ZMQException( "Failed to close socket" );
-            }
+            zmq_close( chandle )
+                .enforce0( "Failed to close socket" );
             handle = null;
         }
         if ( context !is null ) {
@@ -379,10 +381,8 @@ final shared class ZMQSocketImpl {
     
     void connect ( string addr ) {
         enforceHandle( "Tried to connect a closed socket" );
-        auto rc = zmq_connect( cast( void* ) handle, toStringz( addr ) );
-        if ( rc != 0 ) {
-            throw new ZMQException( "Failed to connect socket to " ~ addr );
-        }
+        zmq_connect( chandle, toStringz( addr ) )
+            .enforce0( "Failed to connect socket to " ~ addr );
         connections ~= addr;
     }
 
@@ -400,14 +400,12 @@ final shared class ZMQSocketImpl {
                 int  err    ;
                 int  rc     ;
                 do {
-                    rc = zmq_disconnect( cast( void* ) handle, addrz );
+                    rc = zmq_disconnect( chandle, addrz );
                     if ( rc != 0 ) {
                         err = zmq_errno();
                     }
                 } while ( err == EAGAIN );
-                if ( rc != 0 ) {
-                    throw new ZMQException( err, "Failed to disconnect socket from " ~ addr );
-                }
+                enforce0( rc, err, "Failed to disconnect socket from " ~ addr );
                 connections = connections.remove( idx );
             }
         }
@@ -434,7 +432,7 @@ final shared class ZMQSocketImpl {
             throw new ZMQException( 0, "Tried to open an already opened socket instance" );
         }
         context = a_context;
-        handle = cast( shared ) zmq_socket( cast( void* ) context.handle, a_type );
+        handle = cast( shared ) zmq_socket( context.chandle, a_type );
         if ( handle is null ) {
             throw new ZMQException( "Failed to create socket" );
         }
@@ -487,6 +485,13 @@ final shared class ZMQSocketImpl {
         }
         return *( cast( T* ) data.ptr );
     }
+    
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ///ditto
+    
+    string receive () ( int flags = 0 ) {
+        return receive!string( flags );
+    }
 
 
     /*******************************************************************************************
@@ -504,6 +509,28 @@ final shared class ZMQSocketImpl {
         }
         _send( cast( void[] ) input.array(), flags );
     }
+    
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ///ditto
+    
+    void send ( T ) ( T input, int flags = 0 )
+    
+    if ( isScalarType!T )
+    
+    body {
+        _send( [ input ], flags );
+    }
+    
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    ///ditto
+    
+    void send ( T ) ( T input, int flags = 0 )
+    
+    if ( !isInputRange!T && !isScalarType!T )
+    
+    body {
+        _send( to!string( input ), flags );
+    }
 
 
     /*******************************************************************************************
@@ -519,14 +546,12 @@ final shared class ZMQSocketImpl {
                 int  err    ;
                 int  rc     ;
                 do {
-                    rc = zmq_unbind( cast( void* ) handle, addrz );
+                    rc = zmq_unbind( chandle, addrz );
                     if ( rc != 0 ) {
                         err = zmq_errno();
                     }
                 } while ( err == EAGAIN );
-                if ( rc != 0 ) {
-                    throw new ZMQException( err, "Failed to unbind socket from " ~ addr );
-                }
+                enforce0( rc, err, "Failed to unbind socket from " ~ addr );
                 bindings = bindings.remove( idx );
             }
         }
@@ -572,34 +597,39 @@ final shared class ZMQSocketImpl {
      *
      */
     
+    @property
+    void* chandle () {
+        return cast( void* ) handle;
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    
     void[] _receive ( int flags = 0 ) {
         enforceHandle( "Tried to receive on a closed socket" );
         zmq_msg_t msg;
+        zmq_msg_init( &msg ) .enforce0( "Failed to initialize message" );
+        scope( exit ) zmq_msg_close( &msg ) .enforce0( "Failed to close message" );
         
-        void _close () {
-            auto rc = zmq_msg_close( &msg );
-            if ( rc != 0 ) {
-                throw new ZMQException( "Failed to close message" );
+        bool more = true;
+        void[] result;
+        while ( more ) {
+            auto rc = zmq_msg_recv( &msg, chandle, flags );
+            if ( rc < 0 ) {
+                auto err = zmq_errno();
+                if ( err == EAGAIN ) {
+                    continue;
+                }
+                else {
+                    throw new ZMQException( err, "Failed to receive message" );
+                }
             }
+            result ~= zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ]; 
+            more = zmq_msg_more( &msg ) == 1;
         }
-        
-    L_top:
-        auto rc = zmq_msg_init( &msg );
-        if ( rc != 0 ) {
-            throw new ZMQException( "Failed to initialize message" );
-        }
-        scope( exit ) _close();
-        
-        rc = zmq_recvmsg( cast( void* ) handle, &msg, flags );
-        if ( rc < 0 ) {
-            auto err = zmq_errno();
-            if ( err == EAGAIN ) {
-                _close();
-                goto L_top;
-            }
-            throw new ZMQException( err, "Failed to receive message" );
-        }
-        return zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ].dup;
+        return result;
     }
 
     
@@ -608,7 +638,8 @@ final shared class ZMQSocketImpl {
      */
     
     void _send ( void[] data, int flags = 0 ) {
-        auto rc = zmq_send( cast( void* ) handle, data.ptr, data.length, flags );
+        enforceHandle( "Tried to send on a closed socket" );
+        auto rc = zmq_send( chandle, data.ptr, data.length, flags );
         if ( rc < 0 ) {
             throw new ZMQException( "Failed to send" );
         }
@@ -692,3 +723,27 @@ unittest {
     scope( exit ) destroy( context );
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+private:
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************************************************************************************
+ *
+ */
+
+void enforce0 ( int expr, lazy string errMsg, size_t line = __LINE__ ) {
+    if ( expr != 0 ) {
+        throw new ZMQException( errMsg(), __FILE__, line );
+    }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// ditto
+
+void enforce0 ( int expr, int err, lazy string errMsg, size_t line = __LINE__ ) {
+    if ( expr != 0 ) {
+        throw new ZMQException( err, errMsg(), __FILE__, line );
+    }
+}

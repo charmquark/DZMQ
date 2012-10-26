@@ -21,9 +21,7 @@ void main () {
     auto clientTid = spawn( &client, thisTid, context, ADDR );
     
     // let the other threads to their thing
-    auto ts = Thread.getAll();
-    ts[ 0 ].join();
-    ts[ 1 ].join();
+    Thread.getAll()[ 0 ].join();
 }
 
 
@@ -37,7 +35,7 @@ void server ( Tid parent, ZMQContext context, string addr ) {
     parent.send( 1 );
     
     while ( true ) {
-        auto request = responder.receive!string();
+        auto request = responder.receive();
         writefln( "[server] Received request: [%s]", request );
         
         if ( request.length == 0 ) {
@@ -62,7 +60,7 @@ void client ( Tid parent, ZMQContext context, string addr ) {
         writefln( "[client] Sending request %d", nbr );
         requester.send( "Hello" );
         
-        auto reply = requester.receive!string();
+        auto reply = requester.receive();
         writefln( "[client] Received reply %d: [%s]", nbr, reply );
     }
     
