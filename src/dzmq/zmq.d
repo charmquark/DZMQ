@@ -80,14 +80,6 @@ final shared class ZMQContextImpl {
         }
         ioThreads = a_ioThreads;
     }
-    
-    unittest {
-        auto ctx = new ZMQContext;
-        scope( exit ) destroy( ctx );
-        
-        assert( ctx !is null );
-        assert( ctx.ioThreads == ZMQ_IO_THREADS_DFLT );
-    }
 
 
     /*******************************************************************************************
@@ -130,17 +122,6 @@ final shared class ZMQContextImpl {
     body {
         return zmq_ctx_set( cast( void* ) handle, ZMQ_IO_THREADS, val );
     }
-    
-    unittest {
-        auto ctx = new ZMQContext;
-        scope( exit ) destroy( ctx );
-        
-        assert( ctx.ioThreads == ZMQ_IO_THREADS_DFLT );
-        
-        auto n = ZMQ_IO_THREADS_DFLT * 2;
-        ctx.ioThreads = n;
-        assert( ctx.ioThreads == n );
-    }
 
 
     /*******************************************************************************************
@@ -165,17 +146,6 @@ final shared class ZMQContextImpl {
     body {
         return zmq_ctx_set( cast( void* ) handle, ZMQ_MAX_SOCKETS, val );
     }
-    
-    unittest {
-        auto ctx = new ZMQContext;
-        scope( exit ) destroy( ctx );
-        
-        assert( ctx.maxSockets == ZMQ_MAX_SOCKETS_DFLT );
-        
-        auto n = ZMQ_MAX_SOCKETS_DFLT * 2;
-        ctx.maxSockets = n;
-        assert( ctx.maxSockets == n );
-    }
 
 
     /*******************************************************************************************
@@ -184,15 +154,6 @@ final shared class ZMQContextImpl {
     
     ZMQPoller poller ( int size = ZMQPoller.DEFAULT_SIZE ) {
         return new ZMQPoller( this, size );
-    }
-    
-    unittest {
-        auto ctx = new ZMQContext;
-        scope( exit ) destroy( ctx );
-        
-        auto p = ctx.poller();
-        assert( p !is null );
-        destroy( p );
     }
 
 
@@ -209,15 +170,6 @@ final shared class ZMQContextImpl {
     
     body {
         return new ZMQSocket( this, type );
-    }
-
-    unittest {
-        auto ctx = new ZMQContext;
-        scope( exit ) destroy( ctx );
-        
-        auto s = ctx.socket( ZMQSocket.Type.init );
-        assert( p !is null );
-        destroy( s );
     }
 
 
@@ -279,6 +231,46 @@ final shared class ZMQContextImpl {
 /// ditto
 
 alias shared( ZMQContextImpl ) ZMQContext;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+unittest {
+    ZMQContext  context ;
+    ZMQPoller   poll    ;
+    ZMQSocket   sock    ;
+    int         i       ;
+    
+    context = new ZMQContext;
+    scope( exit ) destroy( ctx );
+    
+    // property ioThreads
+    assert( context.ioThreads == ZMQ_IO_THREADS_DFLT );
+    i = ZMQ_IO_THREADS_DFLT * 2;
+    context.ioThreads = i;
+    assert( context.ioThreads == i );
+    
+    // property maxSockets
+    assert( context.maxSockets == ZMQ_MAX_SOCKETS_DFLT );
+    i = ZMQ_MAX_SOCKETS_DFLT * 2;
+    context.maxSockets = i;
+    assert( context.maxSockets == i );
+    
+    // method poller( ?size )
+    poll = context.poller();
+    assert( poll !is null );
+    destroy( poll );
+    
+    // method socket( type )
+    sock = context.socket( ZMQSocket.Type.Pub );
+    assert( sock !is null );
+    destroy( sock );
+
+    // dynamic method <type>Socket()
+    sock = context.pushSocket();
+    assert( sock !is null );
+    assert( sock.type == ZMQSocket.Type.Push );
+    destroy( sock );
+}
 
 
 /***************************************************************************************************
@@ -641,6 +633,15 @@ final shared class ZMQSocketImpl {
 
 alias shared( ZMQSocketImpl ) ZMQSocket;
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+unittest {
+    ZMQContext  context ;
+    
+    context = new ZMQContext;
+    scope( exit ) destroy( context );
+}
+
 
 /***************************************************************************************************
  *
@@ -681,4 +682,13 @@ alias shared( ZMQSocketImpl ) ZMQSocket;
 ///ditto
 
 alias shared( ZMQPollerImpl ) ZMQPoller;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+unittest {
+    ZMQContext  context ;
+    
+    context = new ZMQContext;
+    scope( exit ) destroy( context );
+}
 
