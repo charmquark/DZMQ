@@ -443,93 +443,69 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
-    
-    T receive ( T ) ( int flags = 0 )
-    
-    if ( isDynamicArray!T )
-    
-    body {
-        return cast( T ) _receive( flags );
-    }
-    
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    ///ditto
-    
-    T receive ( T ) ( int flags = 0 )
-    
-    if ( isStaticArray!T )
-    
-    body {
-        alias ElementType!T E;
-        
-        T result;
-        auto data = _receive( flags );
-        if ( data.length != ( result.length * E.sizeof ) ) {
-            throw new ZMQException( 0, "Data received is the wrong length for " ~ T.stringof );
+
+    T receive ( T = string ) ( int flags = 0 ) {
+        enforceHandle( "Tried to receive on a closed socket" );
+        static if ( isDynamicArray!T ) {
+            alias ElementType!T E;
+            
+            static if ( isScalarType!E ) {
+                return cast( T ) _receive( flags );
+            }
+            else {
+                static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
+            }
         }
-        result[] = cast( E[] ) data;
-        return result;
-    }
-    
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    ///ditto
-    
-    T receive ( T ) ( int flags = 0 )
-    
-    if ( isScalarType!T )
-    
-    body {
-        auto data = _receive( flags );
-        if ( data.length != T.sizeof ) {
-            throw new ZMQException( 0, "Data received is the wrong length for " ~ T.stringof );
+        else static if ( isStaticArray!T ) {
+            alias ElementType!T E;
+            
+            static if ( isScalarType!E ) {
+                auto data = _receive( flags );
+                if ( data.length != ( T.length * E.sizeof ) ) {
+                    throw new ZMQException( 0, text( 
+                        "Data received is the wrong length; ", 
+                        data.length, " for ", T.stringof
+                    ) );
+                }
+                T result;
+                result[] = cast( E[] ) data;
+                return result;
+            }
         }
-        return *( cast( T* ) data.ptr );
-    }
-    
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    ///ditto
-    
-    string receive () ( int flags = 0 ) {
-        return receive!string( flags );
+        else static if ( isScalarType!T ) {
+            auto data = _receive( flags );
+            if ( data.length != T.sizeof ) {
+                throw new ZMQException( 0, text(
+                    "Data received is the wrong length; ",
+                    data.length, " for ", T.stringof
+                ) );
+            }
+            return *( cast( T* ) data.ptr );
+        }
     }
 
 
     /*******************************************************************************************
      *
      */
-    
-    void send ( R ) ( R input, int flags = 0 )
-    
-    if ( isInputRange!R )
-    
-    body {
+    void send ( T ) ( T input, int flags = 0 ) {
         enforceHandle( "Tried to send on a closed socket" );
-        static if ( isForwardRange!R ) {
-            input = input.save;
+        static if ( isArray!T ) {
+            alias ElementType!T E;
+            
+            static if ( isScalarType!E ) {
+                _send( cast( void[] ) input, flags );
+            }
+            else {
+                static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
+            }
         }
-        _send( cast( void[] ) input.array(), flags );
-    }
-    
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    ///ditto
-    
-    void send ( T ) ( T input, int flags = 0 )
-    
-    if ( isScalarType!T )
-    
-    body {
-        _send( [ input ], flags );
-    }
-    
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    ///ditto
-    
-    void send ( T ) ( T input, int flags = 0 )
-    
-    if ( !isInputRange!T && !isScalarType!T )
-    
-    body {
-        _send( to!string( input ), flags );
+        else static if ( isScalarType!T ) {
+            _send( [ input ], flags );
+        }
+        else {
+            _send( to!string( input ), flags );
+        }
     }
 
 
@@ -608,7 +584,6 @@ final shared class ZMQSocketImpl {
      */
     
     void[] _receive ( int flags = 0 ) {
-        enforceHandle( "Tried to receive on a closed socket" );
         zmq_msg_t msg;
         zmq_msg_init( &msg ) .enforce0( "Failed to initialize message" );
         scope( exit ) zmq_msg_close( &msg ) .enforce0( "Failed to close message" );
@@ -638,7 +613,6 @@ final shared class ZMQSocketImpl {
      */
     
     void _send ( void[] data, int flags = 0 ) {
-        enforceHandle( "Tried to send on a closed socket" );
         auto rc = zmq_send( chandle, data.ptr, data.length, flags );
         if ( rc < 0 ) {
             throw new ZMQException( "Failed to send" );

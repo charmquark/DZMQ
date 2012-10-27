@@ -21,7 +21,8 @@ void main () {
     auto clientTid = spawn( &client, thisTid, context, ADDR );
     
     // let the other threads to their thing
-    Thread.getAll()[ 0 ].join();
+    receiveOnly!Tid();
+    receiveOnly!Tid();
 }
 
 
@@ -33,20 +34,29 @@ void server ( Tid parent, ZMQContext context, string addr ) {
     
     // report readiness
     parent.send( 1 );
-    
+
     while ( true ) {
         auto request = responder.receive();
         writefln( "[server] Received request: [%s]", request );
         
         if ( request.length == 0 ) {
+            responder.send( "" );
             break;
         }
         
         Thread.sleep( dur!`seconds`( 1 ) );
         responder.send( "World" );
     }
+
+    auto foo = responder.receive!( int[3] )();
+    writeln( "[server] Received static array ", typeof( foo ).stringof, " ", foo );
+    
+    double bar = 3.14;
+    writeln( "[server] Sending scalar ", typeof( bar ).stringof, " ", bar );
+    responder.send( bar );
     
     writeln( "[server] Stopping" );
+    parent.send( thisTid );
 }
 
 
@@ -55,7 +65,7 @@ void client ( Tid parent, ZMQContext context, string addr ) {
     scope( exit ) destroy( requester );
     
     requester.connect( addr );
-    
+
     foreach ( nbr ; 0 .. 3 ) {
         writefln( "[client] Sending request %d", nbr );
         requester.send( "Hello" );
@@ -64,9 +74,17 @@ void client ( Tid parent, ZMQContext context, string addr ) {
         writefln( "[client] Received reply %d: [%s]", nbr, reply );
     }
     
-    writeln( "[client] Sending empty ('quit') request." );
     requester.send( "" );
+    assert( requester.receive() == "" );
+
+    int[3] foo = [ 1, 2, 3 ];
+    writeln( "[client] Sending static array ", typeof( foo ).stringof, " ", foo );
+    requester.send( foo );
+    
+    auto bar = requester.receive!double();
+    writeln( "[client] Received scalar ", typeof( bar ).stringof, " ", bar );
     
     writeln( "[client] Stopping" );
+    parent.send( thisTid );
 }
 
