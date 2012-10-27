@@ -20,7 +20,7 @@ void main () {
     
     auto clientTid = spawn( &client, thisTid, context, ADDR );
     
-    // let the other threads to their thing
+    // let the other threads do their thing
     receiveOnly!Tid();
     receiveOnly!Tid();
 }

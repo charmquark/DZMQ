@@ -446,41 +446,26 @@ final shared class ZMQSocketImpl {
 
     T receive ( T = string ) ( int flags = 0 ) {
         enforceHandle( "Tried to receive on a closed socket" );
-        static if ( isDynamicArray!T ) {
-            alias ElementType!T E;
-            
-            static if ( isScalarType!E ) {
-                return cast( T ) _receive( flags );
-            }
-            else {
-                static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
-            }
-        }
-        else static if ( isStaticArray!T ) {
-            alias ElementType!T E;
-            
-            static if ( isScalarType!E ) {
-                auto data = _receive( flags );
-                if ( data.length != ( T.length * E.sizeof ) ) {
-                    throw new ZMQException( 0, text( 
-                        "Data received is the wrong length; ", 
-                        data.length, " for ", T.stringof
-                    ) );
-                }
-                T result;
-                result[] = cast( E[] ) data;
-                return result;
-            }
-        }
-        else static if ( isScalarType!T ) {
-            auto data = _receive( flags );
-            if ( data.length != T.sizeof ) {
-                throw new ZMQException( 0, text(
-                    "Data received is the wrong length; ",
+        
+        static if ( is( T == struct ) ) {
+            T result;
+            auto tmp = result.tupleof;
+            auto data = doReceiveParts();
+            if ( data.length != tmp.length ) {
+                throw new ZMQException( 0, text( 
+                    "Data received is the wrong length; ", 
                     data.length, " for ", T.stringof
                 ) );
             }
-            return *( cast( T* ) data.ptr );
+            foreach ( idx, ref elem ; tmp ) {
+                elem = dataTo!( typeof( elem ) )( data[ idx ] );
+            }
+            result = T( tmp );
+            return result;
+        }
+        
+        else {
+            return dataTo!T( doReceive( flags ) );
         }
     }
 
@@ -488,23 +473,20 @@ final shared class ZMQSocketImpl {
     /*******************************************************************************************
      *
      */
+
     void send ( T ) ( T input, int flags = 0 ) {
         enforceHandle( "Tried to send on a closed socket" );
-        static if ( isArray!T ) {
-            alias ElementType!T E;
-            
-            static if ( isScalarType!E ) {
-                _send( cast( void[] ) input, flags );
+        
+        static if ( is( T == struct ) ) {
+            auto tmp = input.tupleof;
+            foreach ( field ; tmp[ 0 .. $ - 1 ] ) {
+                doSend( itemToData( field ), flags | ZMQ_SNDMORE );
             }
-            else {
-                static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
-            }
+            doSend( itemToData( tmp[ $ - 1 ] ), flags );
         }
-        else static if ( isScalarType!T ) {
-            _send( [ input ], flags );
-        }
+        
         else {
-            _send( to!string( input ), flags );
+            doSend( itemToData( input ), flags );
         }
     }
 
@@ -583,26 +565,49 @@ final shared class ZMQSocketImpl {
      *
      */
     
-    void[] _receive ( int flags = 0 ) {
-        zmq_msg_t msg;
-        zmq_msg_init( &msg ) .enforce0( "Failed to initialize message" );
-        scope( exit ) zmq_msg_close( &msg ) .enforce0( "Failed to close message" );
+    void[] doReceive ( int flags = 0 ) {
+        auto msg = openMsg();
+        scope( exit ) msg.close();
         
+    L_top:
+        auto rc = zmq_msg_recv( &msg, chandle, flags );
+        if ( rc < 0 ) {
+            auto err = zmq_errno();
+            if ( err == EAGAIN ) {
+                goto L_top;
+            }
+            else {
+                throw new ZMQException( err, "Failed to receive message" );
+            }
+        }
+        return msg.data();
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+    
+    void[][] doReceiveParts ( int flags = 0 ) {
+        void[][] result;
         bool more = true;
-        void[] result;
         while ( more ) {
+            auto msg = openMsg();
+        
+        L_top:
             auto rc = zmq_msg_recv( &msg, chandle, flags );
             if ( rc < 0 ) {
                 auto err = zmq_errno();
                 if ( err == EAGAIN ) {
-                    continue;
+                    goto L_top;
                 }
                 else {
                     throw new ZMQException( err, "Failed to receive message" );
                 }
             }
-            result ~= zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ]; 
+            result ~= msg.data();
             more = zmq_msg_more( &msg ) == 1;
+            msg.close();
         }
         return result;
     }
@@ -612,8 +617,11 @@ final shared class ZMQSocketImpl {
      *
      */
     
-    void _send ( void[] data, int flags = 0 ) {
-        auto rc = zmq_send( chandle, data.ptr, data.length, flags );
+    void doSend ( void[] data, int flags = 0 ) {
+        auto msg = openMsg( data );
+        scope( exit ) msg.close();
+        
+        auto rc = zmq_msg_send( &msg, chandle, flags );
         if ( rc < 0 ) {
             throw new ZMQException( "Failed to send" );
         }
@@ -707,6 +715,76 @@ private:
  *
  */
 
+void close ( ref zmq_msg_t msg ) {
+    zmq_msg_close( &msg ) .enforce0( "Failed to close message" );
+}
+
+
+/***************************************************************************************************
+ *
+ */
+
+void[] data ( ref zmq_msg_t msg ) {
+    return zmq_msg_data( &msg )[ 0 .. zmq_msg_size( &msg ) ].dup;
+}
+
+
+/***************************************************************************************************
+ *
+ */
+
+T dataTo ( T ) ( void[] data ) {
+    static if ( isDynamicArray!T ) {
+        alias ElementType!T E;
+        
+        static if ( isScalarType!E ) {
+            return cast( T ) data;
+        }
+        else {
+            static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
+        }
+    }
+    
+    else static if ( isStaticArray!T ) {
+        alias ElementType!T E;
+        
+        static if ( isScalarType!E ) {
+            if ( data.length != ( T.length * E.sizeof ) ) {
+                throw new ZMQException( 0, text( 
+                    "Data received is the wrong length; ", 
+                    data.length, " for ", T.stringof
+                ) );
+            }
+            T result;
+            result[] = cast( E[] ) data;
+            return result;
+        }
+    }
+    
+    else static if ( isScalarType!T ) {
+        if ( data.length != T.sizeof ) {
+            throw new ZMQException( 0, text(
+                "Data received is the wrong length; ",
+                data.length, " for ", T.stringof
+            ) );
+        }
+        return *( cast( T* ) data.ptr );
+    }
+    
+    else static if ( is( T == struct ) ) {
+        static assert( false, "Receiving structs not yet supported" );
+    }
+    
+    else {
+        static assert( false, "ZMQSocket doesn't know how to receive type " ~ T.stringof );
+    }
+}
+
+
+/***************************************************************************************************
+ *
+ */
+
 void enforce0 ( int expr, lazy string errMsg, size_t line = __LINE__ ) {
     if ( expr != 0 ) {
         throw new ZMQException( errMsg(), __FILE__, line );
@@ -721,3 +799,51 @@ void enforce0 ( int expr, int err, lazy string errMsg, size_t line = __LINE__ ) 
         throw new ZMQException( err, errMsg(), __FILE__, line );
     }
 }
+
+
+/***************************************************************************************************
+ *
+ */
+
+void[] itemToData ( T ) ( T item ) {
+        static if ( isArray!T ) {
+            alias ElementType!T E;
+            
+            static if ( isScalarType!E ) {
+                return cast( void[] ) item.dup;
+            }
+            else {
+                static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
+            }
+        }
+        
+        else static if ( isScalarType!T ) {
+            return itemToData( [ item ] );
+        }
+        
+        else {
+            return itemToData( to!string( item ) );
+        }
+}
+
+
+/***************************************************************************************************
+ *
+ */
+
+zmq_msg_t openMsg () {
+    zmq_msg_t msg;
+    zmq_msg_init( &msg ) .enforce0( "Failed to initialize message" );
+    return msg;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// ditto
+
+zmq_msg_t openMsg ( void[] data ) {
+    zmq_msg_t msg;
+    zmq_msg_init_data( &msg, data.ptr, data.length, null, null )
+        .enforce0( "Failed to initialize message" );
+    return msg;
+}
+
