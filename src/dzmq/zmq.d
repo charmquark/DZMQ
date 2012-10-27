@@ -11,6 +11,7 @@ module dzmq.zmq;
 
 import  std.algorithm   ,
         std.array       ,
+        std.concurrency ,
         std.conv        ,
         std.range       ,
         std.string      ,
@@ -79,6 +80,7 @@ final shared class ZMQContextImpl {
             throw new ZMQException( "Failed to create context" );
         }
         ioThreads = a_ioThreads;
+        ownerTid = thisTid;
     }
 
 
@@ -119,6 +121,16 @@ final shared class ZMQContextImpl {
     
     body {
         return zmq_ctx_set( chandle, ZMQ_IO_THREADS, val );
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+
+    @property
+    bool isOwnerThread () {
+        return thisTid == ownerTid;
     }
 
 
@@ -189,8 +201,9 @@ final shared class ZMQContextImpl {
     ////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    void*       handle  ;
-    ZMQSocket[] sockets ;
+    void*       handle      ;
+    Tid         ownerTid    ;
+    ZMQSocket[] sockets     ;
 
 
     /*******************************************************************************************
@@ -660,7 +673,7 @@ unittest {
  *
  */
 
- final shared class ZMQPollerImpl {
+final shared class ZMQPollerImpl {
 
 
     /*******************************************************************************************
