@@ -80,7 +80,7 @@ final shared class ZMQContextImpl {
             throw new ZMQException( "Failed to create context" );
         }
         ioThreads = a_ioThreads;
-        ownerTid = thisTid;
+        ownerTid = cast( shared ) thisTid;
     }
 
 
@@ -130,7 +130,7 @@ final shared class ZMQContextImpl {
 
     @property
     bool isOwnerThread () {
-        return thisTid == ownerTid;
+        return cast( shared ) thisTid == ownerTid;
     }
 
 
@@ -442,7 +442,7 @@ final shared class ZMQSocketImpl {
     
     void open ( ZMQContext a_context, Type a_type ) {
         if ( handle !is null ) {
-            throw new ZMQException( 0, "Tried to open an already opened socket instance" );
+            throw new ZMQException( -1, "Tried to open an already opened socket instance" );
         }
         context = a_context;
         handle = cast( shared ) zmq_socket( context.chandle, a_type );
@@ -461,20 +461,7 @@ final shared class ZMQSocketImpl {
         enforceHandle( "Tried to receive on a closed socket" );
         
         static if ( is( T == struct ) ) {
-            T result;
-            auto tmp = result.tupleof;
-            auto data = doReceiveParts();
-            if ( data.length != tmp.length ) {
-                throw new ZMQException( 0, text( 
-                    "Data received is the wrong length; ", 
-                    data.length, " for ", T.stringof
-                ) );
-            }
-            foreach ( idx, ref elem ; tmp ) {
-                elem = dataTo!( typeof( elem ) )( data[ idx ] );
-            }
-            result = T( tmp );
-            return result;
+            return dataTo!T( doReceiveParts( flags ) );
         }
         
         else {
@@ -487,20 +474,53 @@ final shared class ZMQSocketImpl {
      *
      */
 
+    T receiveTyped ( T = string ) ( int flags = 0 ) {
+        enforceHandle( "Tried to receive on a closed socket" );
+        auto data = doReceiveParts( flags );
+        auto name = to!string( data[ 0 ] );
+        if ( name != T.stringof ) {
+            throw new ZMQException( -1, text(
+                "Received wrongly typed data; ",
+                name, " for ", T.stringof
+            ) );
+        }
+        
+        static if ( is( T == struct ) ) {
+            return dataTo!T( data[ 1 .. $ ] );
+        }
+        
+        else {
+            return dataTo!T( data[ 1 ] );
+        }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+
     void send ( T ) ( T input, int flags = 0 ) {
         enforceHandle( "Tried to send on a closed socket" );
         
         static if ( is( T == struct ) ) {
-            auto tmp = input.tupleof;
-            foreach ( field ; tmp[ 0 .. $ - 1 ] ) {
-                doSend( itemToData( field ), flags | ZMQ_SNDMORE );
-            }
-            doSend( itemToData( tmp[ $ - 1 ] ), flags );
+            doSendParts( itemToData( input ) );
         }
         
         else {
             doSend( itemToData( input ), flags );
         }
+    }
+
+
+    /*******************************************************************************************
+     *
+     */
+
+    void sendTyped ( T ) ( T input, int flags = 0 ) {
+        enforceHandle( "Tried to send on a closed socket" );
+        
+        doSend( cast( void[] ) T.stringof, flags | ZMQ_SNDMORE );
+        send( input, flags );
     }
 
 
@@ -640,6 +660,18 @@ final shared class ZMQSocketImpl {
         }
     }
 
+    
+    /*******************************************************************************************
+     *
+     */
+
+    void doSendParts ( void[][] data, int flags = 0 ) {
+        foreach ( part ; data[ 0 .. $ -1 ] ) {
+            doSend( part, flags | ZMQ_SNDMORE );
+        }
+        doSend( data[ $ - 1 ], flags );
+    }
+    
 
     /*******************************************************************************************
      *
@@ -647,7 +679,7 @@ final shared class ZMQSocketImpl {
     
     void enforceHandle ( lazy string msg ) {
         if ( handle is null ) {
-            throw new ZMQException( 0, msg() );
+            throw new ZMQException( -1, msg() );
         }
     }
 
@@ -746,7 +778,11 @@ void[] data ( ref zmq_msg_t msg ) {
  *
  */
 
-T dataTo ( T ) ( void[] data ) {
+T dataTo ( T ) ( void[] data )
+
+if ( !is( T == struct ) )
+
+body {
     static if ( isDynamicArray!T ) {
         alias ElementType!T E;
         
@@ -763,7 +799,7 @@ T dataTo ( T ) ( void[] data ) {
         
         static if ( isScalarType!E ) {
             if ( data.length != ( T.length * E.sizeof ) ) {
-                throw new ZMQException( 0, text( 
+                throw new ZMQException( -1, text( 
                     "Data received is the wrong length; ", 
                     data.length, " for ", T.stringof
                 ) );
@@ -776,7 +812,7 @@ T dataTo ( T ) ( void[] data ) {
     
     else static if ( isScalarType!T ) {
         if ( data.length != T.sizeof ) {
-            throw new ZMQException( 0, text(
+            throw new ZMQException( -1, text(
                 "Data received is the wrong length; ",
                 data.length, " for ", T.stringof
             ) );
@@ -784,13 +820,32 @@ T dataTo ( T ) ( void[] data ) {
         return *( cast( T* ) data.ptr );
     }
     
-    else static if ( is( T == struct ) ) {
-        static assert( false, "Receiving structs not yet supported" );
-    }
-    
     else {
         static assert( false, "ZMQSocket doesn't know how to receive type " ~ T.stringof );
     }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// ditto
+
+T dataTo ( T ) ( void[][] data )
+
+if ( is( T == struct ) )
+
+body {
+    T result;
+    auto tmp = result.tupleof;
+    if ( data.length != tmp.length ) {
+        throw new ZMQException( -1, text( 
+            "Data received is the wrong length; ", 
+            data.length, " for ", T.stringof
+        ) );
+    }
+    foreach ( idx, ref elem ; tmp ) {
+        elem = dataTo!( typeof( elem ) )( data[ idx ] );
+    }
+    result = T( tmp );
+    return result;
 }
 
 
@@ -818,27 +873,45 @@ void enforce0 ( int expr, int err, lazy string errMsg, size_t line = __LINE__ ) 
  *
  */
 
-void[] itemToData ( T ) ( T item ) {
-        static if ( isArray!T ) {
-            alias ElementType!T E;
-            
-            static if ( isScalarType!E ) {
-                return cast( void[] ) item.dup;
-            }
-            else {
-                static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
-            }
-        }
+void[] itemToData ( T ) ( T item )
+
+if ( !is( T == struct ) )
+
+body {
+    static if ( isArray!T ) {
+        alias ElementType!T E;
         
-        else static if ( isScalarType!T ) {
-            return itemToData( [ item ] );
+        static if ( isScalarType!E ) {
+            return cast( void[] ) item.dup;
         }
-        
         else {
-            return itemToData( to!string( item ) );
+            static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
         }
+    }
+    
+    else static if ( isScalarType!T ) {
+        return itemToData( [ item ] );
+    }
+    
+    else {
+        return itemToData( to!string( item ) );
+    }
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/// ditto
+
+void[][] itemToData ( T ) ( T item )
+
+if ( is( T == struct ) )
+
+body {
+    void[][] result;
+    foreach ( field ; item.tupleof ) {
+        result ~= itemToData( field );
+    }
+    return result;
+}
 
 /***************************************************************************************************
  *
