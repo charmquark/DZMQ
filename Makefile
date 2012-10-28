@@ -6,6 +6,7 @@ MODULES := $(wildcard src/dzmq/*.d src/dzmq/c/*.d)
 
 LBITS := $(shell getconf LONG_BIT)
 DVM := $(shell which dvm 2>/dev/null)
+DVM_DEFAULT = $(if $(DVM),,--default)
 
 LIBS := debug release
 debug_OPTS := -debug -g
@@ -44,7 +45,7 @@ endif
 endif
 ifeq ("$(shell dvm list | grep "$(DC)-$(DV)")","")
 @echo " ** Fetching and installing compiler."
-@dvm --$(LBITS)bit --default --force install $(DV)
+@dvm --$(LBITS)bit $(DVM_DEFAULT) --force install $(DV)
 endif
 
 ####################################################################################################
@@ -52,7 +53,7 @@ endif
 libs: setup_dvm $(LIBS)
 
 $(LIBS):
-	#@dvm use $(DV)
+	@dvm use $(DV)
 	@mkdir -p $@
 	$(DC) $(DOPTS) $($(@)_OPTS) -H -Hd$@ -lib -od$@ -ofdzmq $(MODULES)
 	
@@ -61,7 +62,7 @@ $(LIBS):
 tests: setup_dvm $(TESTS)
 
 $(TESTS):
-	#@dvm use $(DV)
+	@dvm use $(DV)
 	$(DC) $(DOPTS) $(debug_OPTS) $(MODULES) -of$(TEST_BIN)/$@ $(TEST_DIR)/$@.d
 
 ####################################################################################################
@@ -81,5 +82,5 @@ check: tests
 ####################################################################################################
 
 docs: setup_dvm
-	#@dvm use $(DV)
+	@dvm use $(DV)
 	$(DC) $(DOPTS) -c -D -Dd$(DOC_DIR) -o- -X -Xf$(DOC_DIR)/ddox.json $(MODULES)
