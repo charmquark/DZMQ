@@ -489,6 +489,10 @@ final shared class ZMQSocketImpl {
             return dataTo!T( data[ 1 .. $ ] );
         }
         
+        else static if ( is( T == wstring ) || is( T == dstring ) ) {
+            return to!T( dataTo!string( data[ 1 .. $ ] ) );
+        }
+        
         else {
             return dataTo!T( data[ 1 ] );
         }
@@ -520,7 +524,14 @@ final shared class ZMQSocketImpl {
         enforceHandle( "Tried to send on a closed socket" );
         
         doSend( cast( void[] ) T.stringof, flags | ZMQ_SNDMORE );
-        send( input, flags );
+        
+        static if ( is( T == wstring ) || is( T == dstring ) ) {
+            send( to!string( input ), flags );
+        }
+        
+        else {
+            send( input, flags );
+        }
     }
 
 
