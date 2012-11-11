@@ -18,6 +18,10 @@ import  std.algorithm   ,
         std.traits      ;
 import  dzmq.c.zmq      ;
 
+debug( DZMQ ) {
+    import std.stdio ;
+}
+
 
 /***************************************************************************************************
  *
@@ -90,9 +94,12 @@ final shared class ZMQContextImpl {
     
     ~this () {
         if ( handle !is null ) {
-            while ( sockets.length ) {
-                destroy( sockets[ 0 ] );
+            foreach ( sock ; sockets.dup ) {
+                destroy( sock );
             }
+            /+while ( sockets.length ) {
+                destroy( sockets[ 0 ] );
+            }+/
             zmq_ctx_destroy( chandle ) 
                 .enforce0( "Failed to destroy context" );
             handle = null;
@@ -304,6 +311,20 @@ final shared class ZMQSocketImpl {
      *
      */
     
+    enum size_t MAX_DISCONNECT_ATTEMPTS = 32;
+
+
+    /*******************************************************************************************
+     *
+     */
+    
+    enum size_t MAX_UNBIND_ATTEMPTS = 32;
+
+
+    /*******************************************************************************************
+     *
+     */
+    
     static enum Type {
         Pair    = ZMQ_PAIR,
         Pub     ,
@@ -338,7 +359,9 @@ final shared class ZMQSocketImpl {
      */
     
     ~this () {
-        close();
+        if ( context !is null ) {
+            close();
+        }
     }
 
 
@@ -374,16 +397,19 @@ final shared class ZMQSocketImpl {
      */
     
     void close () {
-        if ( handle !is null ) {
-            //unbindAll();
-            //disconnectAll();
-            zmq_close( chandle )
-                .enforce0( "Failed to close socket" );
-            handle = null;
+        scope( exit ) {
+            if ( context !is null ) {
+                context.remove( this );
+                context = null;
+            }
         }
-        if ( context !is null ) {
-            context.remove( this );
-            context = null;
+        if ( handle !is null ) {
+            scope( exit ) {
+                zmq_close( chandle ) .enforce0( "Failed to close socket" );
+                handle = null;
+            }
+            disconnectAll();
+            unbindAll();
         }
     }
 
@@ -406,20 +432,24 @@ final shared class ZMQSocketImpl {
     
     void disconnect ( string addr ) {
         enforceHandle( "Tried to disconnect a closed socket" );
-        if ( connections.length ) {
+        if ( connections ) {
             auto idx = connections.countUntil( addr );
             if ( idx >= 0 ) {
-                auto addrz  = toStringz( addr );
-                int  err    ;
-                int  rc     ;
+                scope( exit ) connections = connections.remove( idx );
+                auto    addrz   = toStringz( addr );
+                size_t  iters   ;
+                int     err     ;
+                int     rc      ;
                 do {
                     rc = zmq_disconnect( chandle, addrz );
-                    if ( rc != 0 ) {
-                        err = zmq_errno();
+                    if ( rc == 0 ) {
+                        break;
                     }
-                } while ( err == EAGAIN );
+                    err = zmq_errno();
+                } while ( err == EAGAIN && iters < MAX_DISCONNECT_ATTEMPTS );
+                debug( DZMQ ) if ( rc != 0 )
+                    writeln( "(debug ZMQSocket.disconnect) Failed to disconnect from ", addr, " -> ", to!string( zmq_strerror( err ) ) );
                 enforce0( rc, err, "Failed to disconnect socket from " ~ addr );
-                connections = connections.remove( idx );
             }
         }
     }
@@ -541,20 +571,25 @@ final shared class ZMQSocketImpl {
     
     void unbind ( string addr ) {
         enforceHandle( "Tried to unbind a closed socket" );
-        if ( bindings.length ) {
+        if ( bindings ) {
             auto idx = bindings.countUntil( addr );
             if ( idx >= 0 ) {
-                auto addrz  = toStringz( addr );
-                int  err    ;
-                int  rc     ;
+                scope( exit ) bindings = bindings.remove( idx );
+                auto    addrz   = toStringz( addr );
+                size_t  iters   ;
+                int     err     = EAGAIN;
+                int     rc      ;
                 do {
                     rc = zmq_unbind( chandle, addrz );
-                    if ( rc != 0 ) {
-                        err = zmq_errno();
+                    if ( rc == 0 ) {
+                        break;
                     }
-                } while ( err == EAGAIN );
+                    err = zmq_errno();
+                    ++iters;
+                } while ( err == EAGAIN && iters < MAX_UNBIND_ATTEMPTS );
+                debug( DZMQ ) if ( rc != 0 )
+                    writeln( "(debug ZMQSocket.unbind) Failed to unbind from ", addr, " -> ", to!string( zmq_strerror( err ) ) );
                 enforce0( rc, err, "Failed to unbind socket from " ~ addr );
-                bindings = bindings.remove( idx );
             }
         }
     }
@@ -613,12 +648,12 @@ final shared class ZMQSocketImpl {
         auto msg = openMsg();
         scope( exit ) msg.close();
         
-    L_top:
+    L_again:
         auto rc = zmq_msg_recv( &msg, chandle, flags );
         if ( rc < 0 ) {
             auto err = zmq_errno();
             if ( err == EAGAIN ) {
-                goto L_top;
+                goto L_again;
             }
             else {
                 throw new ZMQException( err, "Failed to receive message" );
@@ -638,12 +673,12 @@ final shared class ZMQSocketImpl {
         while ( more ) {
             auto msg = openMsg();
         
-        L_top:
+        L_again:
             auto rc = zmq_msg_recv( &msg, chandle, flags );
             if ( rc < 0 ) {
                 auto err = zmq_errno();
                 if ( err == EAGAIN ) {
-                    goto L_top;
+                    goto L_again;
                 }
                 else {
                     throw new ZMQException( err, "Failed to receive message" );
@@ -800,6 +835,7 @@ body {
         static if ( isScalarType!E ) {
             return cast( T ) data;
         }
+        
         else {
             static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
         }
@@ -812,12 +848,16 @@ body {
             if ( data.length != ( T.length * E.sizeof ) ) {
                 throw new ZMQException( -1, text( 
                     "Data received is the wrong length; ", 
-                    data.length, " for ", T.stringof
+                    data.length, " for ", T.stringof, "(size ", T.sizeof, ")"
                 ) );
             }
             T result;
             result[] = cast( E[] ) data;
             return result;
+        }
+        
+        else {
+            static assert( false, "Transport of type " ~ T.stringof ~ " not yet supported." );
         }
     }
     
@@ -825,7 +865,7 @@ body {
         if ( data.length != T.sizeof ) {
             throw new ZMQException( -1, text(
                 "Data received is the wrong length; ",
-                data.length, " for ", T.stringof
+                data.length, " for ", T.stringof, "(size ", T.sizeof, ")"
             ) );
         }
         return *( cast( T* ) data.ptr );
@@ -849,7 +889,7 @@ body {
     if ( data.length != tmp.length ) {
         throw new ZMQException( -1, text( 
             "Data received is the wrong length; ", 
-            data.length, " for ", T.stringof
+            data.length, " for ", T.stringof, "(size ", T.sizeof, ")"
         ) );
     }
     foreach ( idx, ref elem ; tmp ) {
@@ -923,6 +963,7 @@ body {
     }
     return result;
 }
+
 
 /***************************************************************************************************
  *

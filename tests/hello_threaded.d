@@ -7,7 +7,7 @@ import  std.concurrency ,
         std.stdio       ;
 
 
-enum ADDR = "inproc://hello";
+enum ADDR = "ipc://hello";
 
 
 void main () {
@@ -27,6 +27,8 @@ void main () {
 
 
 void server ( Tid parent, ZMQContext context, string addr ) {
+    scope( exit ) parent.send( thisTid );
+    
     auto responder = context.replierSocket();
     scope( exit ) destroy( responder );
     
@@ -47,20 +49,13 @@ void server ( Tid parent, ZMQContext context, string addr ) {
         Thread.sleep( dur!`seconds`( 1 ) );
         responder.send( "World" );
     }
-
-    auto foo = responder.receive!( int[3] )();
-    writeln( "[server] Received static array ", typeof( foo ).stringof, " ", foo );
-    
-    double bar = 3.14;
-    writeln( "[server] Sending scalar ", typeof( bar ).stringof, " ", bar );
-    responder.send( bar );
-    
     writeln( "[server] Stopping" );
-    parent.send( thisTid );
 }
 
 
 void client ( Tid parent, ZMQContext context, string addr ) {
+    scope( exit ) parent.send( thisTid );
+    
     auto requester = context.requesterSocket();
     scope( exit ) destroy( requester );
     
@@ -74,17 +69,8 @@ void client ( Tid parent, ZMQContext context, string addr ) {
         writefln( "[client] Received reply %d: [%s]", nbr, reply );
     }
     
+    writeln( "[client] Stopping" );
     requester.send( "" );
     assert( requester.receive() == "" );
-
-    int[3] foo = [ 1, 2, 3 ];
-    writeln( "[client] Sending static array ", typeof( foo ).stringof, " ", foo );
-    requester.send( foo );
-    
-    auto bar = requester.receive!double();
-    writeln( "[client] Received scalar ", typeof( bar ).stringof, " ", bar );
-    
-    writeln( "[client] Stopping" );
-    parent.send( thisTid );
 }
 
